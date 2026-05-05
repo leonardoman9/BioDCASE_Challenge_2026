@@ -1,0 +1,12 @@
+defaults:
+  - baseline
+  - _self_
+
+project:
+  name: biodcase_focal
+
+loss:
+  type: focal
+  gamma: 4.0
+  class_weights: auto
+

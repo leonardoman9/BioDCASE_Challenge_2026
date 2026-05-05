@@ -1,0 +1,25 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+logs/
+outputs/
+exports/
+wandb/
+mlruns/
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.tflite
+*.h5
+*.keras
+*.npz
+
+# Keep the local dataset out of version control by default.
+BioDCASE2026_TinyML_Development_Dataset/

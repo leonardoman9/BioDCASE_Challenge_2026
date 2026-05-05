@@ -1,0 +1,11 @@
+defaults:
+  - baseline
+  - _self_
+
+project:
+  name: biodcase_semilearnable_57k
+
+model:
+  params:
+    hidden_dim: 70
+

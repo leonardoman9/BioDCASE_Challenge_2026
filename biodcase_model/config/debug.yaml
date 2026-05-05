@@ -1,0 +1,25 @@
+defaults:
+  - baseline
+  - _self_
+
+project:
+  name: biodcase_debug
+
+data:
+  batch_size: 4
+  num_workers: 0
+  pin_memory: false
+  persistent_workers: false
+  use_augmentation: false
+
+trainer:
+  max_epochs: 1
+  accelerator: cpu
+  devices: 1
+  fast_dev_run: 2
+  log_every_n_steps: 1
+  num_sanity_val_steps: 0
+
+early_stopping:
+  enabled: false
+

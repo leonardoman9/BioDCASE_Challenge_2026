@@ -1,0 +1,102 @@
+defaults:
+  - _self_
+
+project:
+  name: biodcase_semilearnable_baseline
+  seed: 42
+  output_dir: outputs
+
+logging:
+  level: INFO
+  log_dir: logs
+
+data:
+  dataset_dir: BioDCASE2026_TinyML_Development_Dataset
+  class_map_path: outputs/class_map.json
+  sample_rate: 24000
+  clip_duration: 3.0
+  batch_size: 32
+  num_workers: 2
+  pin_memory: true
+  persistent_workers: false
+  drop_last: false
+  use_augmentation: true
+  augmentation:
+    noise_std: 0.005
+    gain_min: 0.85
+    gain_max: 1.15
+    max_shift_seconds: 0.05
+
+model:
+  target: biodcase_edge.models.wrennet.Improved_Phi_GRU_ATT
+  params:
+    spectrogram_type: combined_log_linear
+    sample_rate: 24000
+    hidden_dim: 64
+    n_mel_bins: 64
+    n_linear_filters: 64
+    f_min: 150.0
+    f_max: 12000.0
+    n_fft: 1024
+    hop_length: 240
+    breakpoint: 4000.0
+    transition_width: 100.0
+    matchbox:
+      base_filters: 32
+      num_layers: 3
+      kernel_size: 3
+      dropout: 0.15
+
+loss:
+  type: focal
+  gamma: 2.0
+  class_weights: auto
+
+distillation:
+  enabled: false
+  soft_labels_path: outputs/soft_labels
+  alpha: 0.25
+  temperature: 5.0
+
+optimizer:
+  lr: 8.0e-4
+  weight_decay: 1.5e-2
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+  breakpoint_lr: 8.0e-4
+  transition_width_lr: 8.0e-4
+
+scheduler:
+  enabled: true
+  monitor: val/loss
+  mode: min
+  factor: 0.6
+  patience: 7
+  min_lr: 5.0e-7
+
+trainer:
+  max_epochs: 75
+  accelerator: auto
+  devices: 1
+  precision: 32
+  log_every_n_steps: 10
+  enable_checkpointing: true
+  gradient_clip_val: null
+  num_sanity_val_steps: 2
+
+checkpoint:
+  monitor: val/macro_f1
+  mode: max
+  save_top_k: 1
+
+early_stopping:
+  enabled: true
+  monitor: val/macro_f1
+  mode: max
+  patience: 20
+  min_delta: 0.0005
+
+export:
+  checkpoint: null
+  output_path: exports/biodcase_semilearnable.onnx
+  opset_version: 17

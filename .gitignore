@@ -1,0 +1,55 @@
+# Local reference/private source material.
+tesi.tex
+ICASSP 2026 birds - results.pdf.txt
+rf4423/
+
+# OS/editor noise.
+.DS_Store
+*/.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python caches and test artifacts.
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local environments.
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# Local datasets.
+BioDCASE2026_TinyML_Development_Dataset/
+biodcase_model/BioDCASE2026_TinyML_Development_Dataset/
+*.wav
+
+# Training/export artifacts.
+logs/
+outputs/
+exports/
+**/logs/
+**/outputs/
+**/exports/
+wandb/
+mlruns/
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.tflite
+*.h5
+*.keras
+*.npz

@@ -1,0 +1,15 @@
+defaults:
+  - baseline
+  - _self_
+
+project:
+  name: biodcase_export
+
+data:
+  use_augmentation: false
+
+export:
+  checkpoint: null
+  output_path: exports/biodcase_semilearnable.onnx
+  opset_version: 17
+

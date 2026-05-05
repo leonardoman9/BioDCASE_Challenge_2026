@@ -1,0 +1,22 @@
+services:
+  train:
+    build: .
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: python -m biodcase_edge.cli.train --config-name debug
+
+  inspect:
+    build: .
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: python -m biodcase_edge.cli.inspect_dataset --config-name baseline
+
+  soft-labels:
+    build: .
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: python -m biodcase_edge.cli.extract_soft_labels --config-name distillation
+

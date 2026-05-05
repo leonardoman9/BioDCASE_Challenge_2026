@@ -1,0 +1,34 @@
+defaults:
+  - baseline
+  - _self_
+
+project:
+  name: biodcase_focal_distillation
+
+loss:
+  type: focal_distillation
+  gamma: 2.0
+  class_weights: auto
+
+distillation:
+  enabled: true
+  soft_labels_path: outputs/soft_labels
+  alpha: 0.25
+  temperature: 5.0
+  teacher:
+    confidence_threshold: 0.05
+    fallback_to_hard_labels: true
+    background_policy: hard_background
+    species_map:
+      Background: Background
+      Common Chaffinch: Common Chaffinch
+      Common Chiffchaff: Common Chiffchaff
+      Eurasian Blackbird: Eurasian Blackbird
+      Eurasian Blackcap: Eurasian Blackcap
+      Eurasian Blue Tit: Eurasian Blue Tit
+      Great Spotted Woodpecker: Great Spotted Woodpecker
+      Great Tit: Great Tit
+      Mallard: Mallard
+      Song Thrush: Song Thrush
+      Tawny Owl: Tawny Owl
+
