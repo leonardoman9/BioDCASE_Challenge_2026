@@ -52,17 +52,17 @@ def main(argv=None) -> None:
     logger = CSVLogger(save_dir=str(run_dir), name="csv", version="")
 
     callbacks = []
+    checkpoint_callback = None
     if cfg.trainer.get("enable_checkpointing", True):
-        callbacks.append(
-            ModelCheckpoint(
-                dirpath=run_dir / "checkpoints",
-                filename="best-{epoch:03d}-{val_acc:.4f}",
-                monitor=str(cfg.checkpoint.monitor),
-                mode=str(cfg.checkpoint.mode),
-                save_top_k=int(cfg.checkpoint.save_top_k),
-                save_last=True,
-            )
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=run_dir / "checkpoints",
+            filename="best-{epoch:03d}-{val_macro_f1:.4f}",
+            monitor=str(cfg.checkpoint.monitor),
+            mode=str(cfg.checkpoint.mode),
+            save_top_k=int(cfg.checkpoint.save_top_k),
+            save_last=True,
         )
+        callbacks.append(checkpoint_callback)
     if cfg.early_stopping.get("enabled", False):
         callbacks.append(
             EarlyStopping(
@@ -95,6 +95,10 @@ def main(argv=None) -> None:
     metrics["num_classes"] = len(class_names)
     metrics["total_params"] = sum(p.numel() for p in experiment.model.parameters())
     metrics["trainable_params"] = sum(p.numel() for p in experiment.model.parameters() if p.requires_grad)
+    if checkpoint_callback is not None:
+        metrics["best_checkpoint"] = str(checkpoint_callback.best_model_path)
+        if checkpoint_callback.best_model_score is not None:
+            metrics["best_model_score"] = float(checkpoint_callback.best_model_score.detach().cpu().item())
     write_json(metrics, run_dir / "results.json")
     (run_dir / "model_summary.txt").write_text(
         "\n".join(
@@ -102,7 +106,8 @@ def main(argv=None) -> None:
                 f"Model: {experiment.model.__class__.__name__}",
                 f"Total parameters: {metrics['total_params']:,}",
                 f"Trainable parameters: {metrics['trainable_params']:,}",
-                f"Best checkpoint: {getattr(callbacks[0], 'best_model_path', '') if callbacks else ''}",
+                f"Best checkpoint: {checkpoint_callback.best_model_path if checkpoint_callback else ''}",
+                f"Best score: {checkpoint_callback.best_model_score if checkpoint_callback else ''}",
             ]
         )
         + "\n",
@@ -113,4 +118,3 @@ def main(argv=None) -> None:
 
 if __name__ == "__main__":
     main()
-

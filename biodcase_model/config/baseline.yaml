@@ -85,13 +85,13 @@ trainer:
   num_sanity_val_steps: 2
 
 checkpoint:
-  monitor: val/macro_f1
+  monitor: val_macro_f1
   mode: max
   save_top_k: 1
 
 early_stopping:
   enabled: true
-  monitor: val/macro_f1
+  monitor: val_macro_f1
   mode: max
   patience: 20
   min_delta: 0.0005

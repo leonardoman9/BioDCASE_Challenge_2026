@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
-from torchmetrics.classification import MulticlassAccuracy, MulticlassF1Score
+from torchmetrics.classification import MulticlassAccuracy
 
 from biodcase_edge.losses import DistillationLoss, FocalDistillationLoss, FocalLoss
 from biodcase_edge.metrics import summarize_classification
@@ -40,9 +40,7 @@ class BioDCASEExperiment(L.LightningModule):
         self.loss_fn = self._build_supervised_loss()
         self.distillation_loss_fn = self._build_distillation_loss() if cfg.distillation.enabled else None
 
-        self.train_acc = MulticlassAccuracy(num_classes=self.num_classes)
-        self.val_acc = MulticlassAccuracy(num_classes=self.num_classes)
-        self.val_macro_f1 = MulticlassF1Score(num_classes=self.num_classes, average="macro")
+        self.train_acc = MulticlassAccuracy(num_classes=self.num_classes, average="micro")
         self._val_preds: list[torch.Tensor] = []
         self._val_targets: list[torch.Tensor] = []
 
@@ -65,11 +63,7 @@ class BioDCASEExperiment(L.LightningModule):
         preds = logits.argmax(dim=1)
         self._val_preds.append(preds.detach().cpu())
         self._val_targets.append(labels.detach().cpu())
-        acc = self.val_acc(logits, labels)
-        macro_f1 = self.val_macro_f1(logits, labels)
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=labels.size(0))
-        self.log("val/acc", acc, on_step=False, on_epoch=True, prog_bar=True, batch_size=labels.size(0))
-        self.log("val/macro_f1", macro_f1, on_step=False, on_epoch=True, prog_bar=True, batch_size=labels.size(0))
         return loss
 
     def on_validation_epoch_start(self) -> None:
@@ -82,6 +76,16 @@ class BioDCASEExperiment(L.LightningModule):
         preds = torch.cat(self._val_preds).numpy().tolist()
         targets = torch.cat(self._val_targets).numpy().tolist()
         summary = summarize_classification(targets, preds)
+        self.log("val/accuracy", summary.accuracy, prog_bar=True)
+        self.log("val/macro_f1", summary.macro_f1, prog_bar=True)
+        self.log("val/weighted_f1", summary.weighted_f1, prog_bar=False)
+        self.log("val/weighted_precision", summary.weighted_precision, prog_bar=False)
+        self.log("val/weighted_recall", summary.weighted_recall, prog_bar=False)
+        self.log("val_accuracy", summary.accuracy, prog_bar=False)
+        self.log("val_macro_f1", summary.macro_f1, prog_bar=False)
+        self.log("val_weighted_f1", summary.weighted_f1, prog_bar=False)
+
+        # Backward-compatible names for previous CSV analysis scripts.
         self.log("val/weighted_f1_epoch", summary.weighted_f1, prog_bar=False)
         self.log("val/weighted_precision_epoch", summary.weighted_precision, prog_bar=False)
         self.log("val/weighted_recall_epoch", summary.weighted_recall, prog_bar=False)
@@ -235,4 +239,3 @@ class BioDCASEExperiment(L.LightningModule):
         if self.trainer.logger and getattr(self.trainer.logger, "log_dir", None):
             return Path(self.trainer.logger.log_dir)
         return Path(self.cfg.project.output_dir)
-
