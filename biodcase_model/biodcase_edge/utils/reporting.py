@@ -5,9 +5,6 @@ import json
 from pathlib import Path
 from typing import Any, Sequence
 
-import numpy as np
-from sklearn.metrics import classification_report, confusion_matrix
-
 
 def write_json(data: dict[str, Any], path: str | Path) -> None:
     path = Path(path)
@@ -22,6 +19,8 @@ def save_classification_report(
     output_dir: str | Path,
     prefix: str,
 ) -> dict[str, Any]:
+    from sklearn.metrics import classification_report
+
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     report_dict = classification_report(
@@ -50,7 +49,9 @@ def save_confusion_matrix(
     class_names: Sequence[str],
     output_dir: str | Path,
     prefix: str,
-) -> np.ndarray:
+) -> Any:
+    from sklearn.metrics import confusion_matrix
+
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     matrix = confusion_matrix(targets, preds, labels=list(range(len(class_names))))
@@ -60,4 +61,3 @@ def save_confusion_matrix(
         for name, row in zip(class_names, matrix):
             writer.writerow([name, *row.tolist()])
     return matrix
-
