@@ -1,0 +1,62 @@
+[
+  {
+    "class_name": "Common Chaffinch",
+    "scientific_name": "Fringilla coelebs",
+    "genus": "Fringilla",
+    "species": "coelebs"
+  },
+  {
+    "class_name": "Common Chiffchaff",
+    "scientific_name": "Phylloscopus collybita",
+    "genus": "Phylloscopus",
+    "species": "collybita"
+  },
+  {
+    "class_name": "Eurasian Blackbird",
+    "scientific_name": "Turdus merula",
+    "genus": "Turdus",
+    "species": "merula"
+  },
+  {
+    "class_name": "Eurasian Blackcap",
+    "scientific_name": "Sylvia atricapilla",
+    "genus": "Sylvia",
+    "species": "atricapilla"
+  },
+  {
+    "class_name": "Eurasian Blue Tit",
+    "scientific_name": "Cyanistes caeruleus",
+    "genus": "Cyanistes",
+    "species": "caeruleus"
+  },
+  {
+    "class_name": "Great Spotted Woodpecker",
+    "scientific_name": "Dendrocopos major",
+    "genus": "Dendrocopos",
+    "species": "major"
+  },
+  {
+    "class_name": "Great Tit",
+    "scientific_name": "Parus major",
+    "genus": "Parus",
+    "species": "major"
+  },
+  {
+    "class_name": "Mallard",
+    "scientific_name": "Anas platyrhynchos",
+    "genus": "Anas",
+    "species": "platyrhynchos"
+  },
+  {
+    "class_name": "Song Thrush",
+    "scientific_name": "Turdus philomelos",
+    "genus": "Turdus",
+    "species": "philomelos"
+  },
+  {
+    "class_name": "Tawny Owl",
+    "scientific_name": "Strix aluco",
+    "genus": "Strix",
+    "species": "aluco"
+  }
+]
