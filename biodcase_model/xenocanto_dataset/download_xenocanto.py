@@ -15,6 +15,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from tqdm.auto import tqdm
+
 
 API_URL = "https://xeno-canto.org/api/3/recordings"
 DEFAULT_CUTOFF = "2025-04-01"
@@ -74,12 +76,43 @@ def main(argv: list[str] | None = None) -> int:
         "download_audio": not args.metadata_only,
         "species": {},
     }
+    progress_enabled = sys.stderr.isatty()
+    global_total = (
+        len(species_list) * args.limit_per_species
+        if args.limit_per_species is not None
+        else None
+    )
 
     manifest_mode = "a" if args.append_manifest else "w"
-    with manifest_path.open(manifest_mode, encoding="utf-8") as manifest:
+    global_bar_ctx = tqdm(
+        total=global_total,
+        desc="All species",
+        unit="file",
+        position=0,
+        dynamic_ncols=True,
+        leave=True,
+        disable=not progress_enabled,
+    )
+    with manifest_path.open(manifest_mode, encoding="utf-8") as manifest, global_bar_ctx as global_bar:
         for species in species_list:
-            species_summary = download_species(species, args, api_key, cutoff, root, manifest)
+            species_summary = download_species(
+                species=species,
+                args=args,
+                api_key=api_key,
+                cutoff=cutoff,
+                root=root,
+                manifest=manifest,
+                global_bar=global_bar,
+                progress_enabled=progress_enabled,
+            )
             summary["species"][species.class_name] = species_summary
+
+        if global_bar is not None and global_total is not None:
+            accepted_total = sum(
+                item["accepted_records"] for item in summary["species"].values()
+            )
+            global_bar.total = accepted_total
+            global_bar.refresh()
 
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
     print(f"Wrote manifest: {manifest_path}")
@@ -137,8 +170,9 @@ def download_species(
     cutoff: date | None,
     root: Path,
     manifest,
+    global_bar,
+    progress_enabled: bool,
 ) -> dict[str, Any]:
-    print(f"\n== {species.class_name} ({species.scientific_name}) ==")
     audio_dir = root / "raw_audio" / species.slug
     audio_dir.mkdir(parents=True, exist_ok=True)
     page_dir = root / "metadata" / "pages"
@@ -149,6 +183,8 @@ def download_species(
     failed_downloads = 0
     page = 1
     num_pages = None
+    pages_seen = 0
+    species_bar = None
 
     while True:
         if args.max_pages is not None and page > args.max_pages:
@@ -164,8 +200,28 @@ def download_species(
             raise RuntimeError(f"Xeno-canto API error for {species.class_name}: {payload}")
 
         num_pages = int(payload.get("numPages") or payload.get("num_pages") or 1)
+        num_recordings = int(payload.get("numRecordings") or payload.get("num_recordings") or 0)
         recordings = payload.get("recordings") or []
-        print(f"page {page}/{num_pages}: {len(recordings)} records")
+        pages_seen += 1
+        if species_bar is None:
+            species_total = (
+                min(num_recordings, args.limit_per_species)
+                if args.limit_per_species is not None and num_recordings
+                else args.limit_per_species or num_recordings or None
+            )
+            species_bar = tqdm(
+                total=species_total,
+                desc=species.class_name[:28],
+                unit="file",
+                position=1,
+                dynamic_ncols=True,
+                leave=False,
+                disable=not progress_enabled,
+            )
+        if species_bar is not None:
+            species_bar.set_postfix_str(
+                f"page={page}/{num_pages} accepted={accepted} cutoff_skips={skipped_after_cutoff}"
+            )
 
         for record in recordings:
             uploaded = uploaded_date(record)
@@ -184,7 +240,13 @@ def download_species(
             download_status = "metadata_only"
             if not args.metadata_only:
                 try:
-                    audio_path = download_audio(record, species, audio_dir, args)
+                    audio_path = download_audio(
+                        record=record,
+                        species=species,
+                        audio_dir=audio_dir,
+                        args=args,
+                        progress_enabled=progress_enabled,
+                    )
                     download_status = "downloaded"
                 except Exception as exc:  # noqa: BLE001 - manifest should capture failed external downloads.
                     failed_downloads += 1
@@ -202,19 +264,35 @@ def download_species(
             manifest.write(json.dumps(manifest_record, sort_keys=True) + "\n")
             manifest.flush()
             accepted += 1
+            if species_bar is not None:
+                species_bar.update(1)
+                species_bar.set_postfix_str(
+                    f"page={page}/{num_pages} accepted={accepted} cutoff_skips={skipped_after_cutoff}"
+                )
+            if global_bar is not None:
+                global_bar.update(1)
+                global_bar.set_postfix_str(f"species={species.slug} accepted={accepted}")
 
             if args.limit_per_species is not None and accepted >= args.limit_per_species:
                 break
-            time.sleep(args.sleep)
+            if not args.metadata_only and args.sleep > 0:
+                time.sleep(args.sleep)
 
         if page >= num_pages:
             break
         page += 1
-        time.sleep(args.sleep)
+        if not args.metadata_only and args.sleep > 0:
+            time.sleep(args.sleep)
+
+    if species_bar is not None:
+        if species_bar.total is not None and accepted < species_bar.total:
+            species_bar.total = accepted
+            species_bar.refresh()
+        species_bar.close()
 
     return {
         "scientific_name": species.scientific_name,
-        "pages_seen": page,
+        "pages_seen": pages_seen,
         "num_pages": num_pages,
         "accepted_records": accepted,
         "skipped_after_cutoff": skipped_after_cutoff,
@@ -244,7 +322,13 @@ def fetch_json(url: str, timeout: float, retries: int) -> dict[str, Any]:
     return json.loads(data.decode("utf-8"))
 
 
-def download_audio(record: dict[str, Any], species: Species, audio_dir: Path, args: argparse.Namespace) -> Path:
+def download_audio(
+    record: dict[str, Any],
+    species: Species,
+    audio_dir: Path,
+    args: argparse.Namespace,
+    progress_enabled: bool,
+) -> Path:
     recording_id = str(record.get("id") or record.get("xc_id") or "unknown")
     source_url = audio_url(record)
     extension = audio_extension(record, source_url)
@@ -252,8 +336,21 @@ def download_audio(record: dict[str, Any], species: Species, audio_dir: Path, ar
     if output_path.exists() and not args.overwrite:
         return output_path
 
-    content = fetch_bytes(source_url, args.timeout, args.retries)
-    output_path.write_bytes(content)
+    file_bar = tqdm(
+        total=None,
+        desc=f"{species.slug}:{recording_id}"[:40],
+        unit="B",
+        unit_scale=True,
+        unit_divisor=1024,
+        position=2,
+        dynamic_ncols=True,
+        leave=False,
+        disable=not progress_enabled,
+    )
+    try:
+        fetch_to_path(source_url, output_path, args.timeout, args.retries, file_bar)
+    finally:
+        file_bar.close()
     return output_path
 
 
@@ -266,6 +363,37 @@ def fetch_bytes(url: str, timeout: float, retries: int) -> bytes:
                 return response.read()
         except (HTTPError, URLError, TimeoutError) as exc:
             last_error = exc
+            if attempt < retries:
+                time.sleep(min(2.0 * attempt, 10.0))
+    raise RuntimeError(f"failed after {retries} attempts: {url}: {last_error}")
+
+
+def fetch_to_path(url: str, output_path: Path, timeout: float, retries: int, progress_bar) -> None:
+    last_error: Exception | None = None
+    temp_path = output_path.with_suffix(output_path.suffix + ".part")
+    for attempt in range(1, retries + 1):
+        try:
+            request = Request(url, headers={"User-Agent": "BioDCASE-2026-XC-downloader/0.1"})
+            with urlopen(request, timeout=timeout) as response, temp_path.open("wb") as handle:
+                total = response.headers.get("Content-Length")
+                if total is not None and progress_bar is not None:
+                    progress_bar.reset(total=int(total))
+                elif progress_bar is not None:
+                    progress_bar.reset(total=None)
+
+                while True:
+                    chunk = response.read(64 * 1024)
+                    if not chunk:
+                        break
+                    handle.write(chunk)
+                    if progress_bar is not None:
+                        progress_bar.update(len(chunk))
+            temp_path.replace(output_path)
+            return
+        except (HTTPError, URLError, TimeoutError) as exc:
+            last_error = exc
+            if temp_path.exists():
+                temp_path.unlink()
             if attempt < retries:
                 time.sleep(min(2.0 * attempt, 10.0))
     raise RuntimeError(f"failed after {retries} attempts: {url}: {last_error}")
