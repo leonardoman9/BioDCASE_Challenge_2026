@@ -85,15 +85,41 @@ xenocanto_dataset/
 
 Downloaded audio and metadata are ignored by Git.
 
-## Recommended Next Processing Step
+## Preprocess to BioDCASE-style snippets
 
-After downloading, build a separate preprocessing script that:
+`preprocess_xenocanto.py` converts raw Xeno-canto recordings into one 3-second snippet per recording using energy-based peak detection adapted from the `rf4423` pipeline:
 
-1. decodes MP3/FLAC/etc.;
-2. resamples to 24 kHz mono;
-3. segments long recordings into 3-second windows;
-4. selects windows with acoustic activity rather than blindly taking the first 3 seconds;
-5. keeps recording-level train/validation splits to avoid leakage;
-6. writes processed clips in a BioDCASE-compatible folder layout.
+1. decode input audio;
+2. convert to mono;
+3. resample to `24,000 Hz`;
+4. apply band-pass filtering and adaptive peak detection;
+5. extract one `3.0s` snippet centered on the strongest detected peak;
+6. fallback to the maximum-energy `3.0s` window if no peak is found;
+7. export `.wav` as `16-bit PCM`.
+
+Example:
+
+```bash
+cd biodcase_model/xenocanto_dataset
+python preprocess_xenocanto.py \
+  --input-root /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k \
+  --raw-audio-dir /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k/raw_audio \
+  --manifest-path /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k/metadata/recordings.jsonl \
+  --output-dir /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k_processed_24k_3s
+```
+
+Output layout:
+
+```text
+..._processed_24k_3s/
+├── Common Chaffinch/
+├── Common Chiffchaff/
+├── ...
+└── metadata/
+    ├── processed_snippets.jsonl
+    └── summary.json
+```
+
+For now the script keeps **one snippet per recording**. That keeps the first pretraining dataset simple and avoids exploding the dataset size before we validate the extraction quality.
 
 Do not tune hyperparameters on the hidden evaluation set.
