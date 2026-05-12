@@ -67,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
     root.mkdir(parents=True, exist_ok=True)
     (root / "raw_audio").mkdir(exist_ok=True)
     (root / "metadata" / "pages").mkdir(parents=True, exist_ok=True)
-    manifest_path = root / "metadata" / "recordings.jsonl"
+    manifest_path = Path(args.manifest_path) if args.manifest_path else (root / "metadata" / "recordings.jsonl")
     summary_path = root / "metadata" / "summary.json"
 
     summary: dict[str, Any] = {
@@ -84,6 +84,20 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     manifest_mode = "a" if args.append_manifest else "w"
+    if args.from_manifest:
+        summary = download_from_manifest(
+            args=args,
+            species_list=species_list,
+            root=root,
+            manifest_path=manifest_path,
+            summary=summary,
+            progress_enabled=progress_enabled,
+        )
+        summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+        print(f"Used manifest: {manifest_path}")
+        print(f"Wrote summary: {summary_path}")
+        return 0
+
     global_bar_ctx = tqdm(
         total=global_total,
         desc="All species",
@@ -128,6 +142,11 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--species-file", default=str(SCRIPT_DIR / "species.json"), help="Species JSON file.")
     parser.add_argument("--output-dir", default=str(SCRIPT_DIR), help="Output directory for raw_audio/ and metadata/.")
     parser.add_argument(
+        "--manifest-path",
+        default=None,
+        help="Path to metadata/recordings.jsonl. Defaults to <output-dir>/metadata/recordings.jsonl.",
+    )
+    parser.add_argument(
         "--species",
         action="append",
         help="Restrict to one class/scientific name/slug. Can be passed multiple times.",
@@ -150,12 +169,108 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--limit-per-species", type=int, default=None, help="Limit accepted records per species.")
     parser.add_argument("--per-page", type=int, default=None, help="Optional API per_page parameter.")
     parser.add_argument("--metadata-only", action="store_true", help="Fetch metadata but do not download audio.")
+    parser.add_argument(
+        "--from-manifest",
+        action="store_true",
+        help="Skip API queries and use an existing recordings.jsonl manifest as the source of downloads.",
+    )
     parser.add_argument("--append-manifest", action="store_true", help="Append to metadata/recordings.jsonl.")
     parser.add_argument("--overwrite", action="store_true", help="Re-download existing audio files.")
     parser.add_argument("--sleep", type=float, default=1.0, help="Seconds to sleep between requests/downloads.")
     parser.add_argument("--timeout", type=float, default=60.0, help="Request timeout in seconds.")
     parser.add_argument("--retries", type=int, default=3, help="Retries per HTTP request.")
     return parser.parse_args(argv)
+
+
+def download_from_manifest(
+    args: argparse.Namespace,
+    species_list: list[Species],
+    root: Path,
+    manifest_path: Path,
+    summary: dict[str, Any],
+    progress_enabled: bool,
+) -> dict[str, Any]:
+    if not manifest_path.exists():
+        raise SystemExit(f"Manifest not found: {manifest_path}")
+
+    species_by_name = {item.class_name: item for item in species_list}
+    records_by_species: dict[str, list[dict[str, Any]]] = {item.class_name: [] for item in species_list}
+    total_records = 0
+
+    with manifest_path.open(encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            payload = json.loads(line)
+            class_name = payload.get("class_name")
+            if class_name not in records_by_species:
+                continue
+            records_by_species[class_name].append(payload)
+            total_records += 1
+
+    global_bar_ctx = tqdm(
+        total=total_records,
+        desc="All species",
+        unit="file",
+        position=0,
+        dynamic_ncols=True,
+        leave=True,
+        disable=not progress_enabled,
+    )
+    with global_bar_ctx as global_bar:
+        for species in species_list:
+            records = records_by_species.get(species.class_name, [])
+            species_bar = tqdm(
+                total=len(records),
+                desc=species.class_name[:28],
+                unit="file",
+                position=1,
+                dynamic_ncols=True,
+                leave=False,
+                disable=not progress_enabled,
+            )
+            accepted = 0
+            failed_downloads = 0
+            audio_dir = root / "raw_audio" / species.slug
+            audio_dir.mkdir(parents=True, exist_ok=True)
+
+            for item in records:
+                record = item["recording"]
+                download_status = "metadata_only"
+                audio_path = None
+                if not args.metadata_only:
+                    try:
+                        audio_path = download_audio(
+                            record=record,
+                            species=species,
+                            audio_dir=audio_dir,
+                            args=args,
+                            progress_enabled=progress_enabled,
+                        )
+                        download_status = "downloaded"
+                    except Exception as exc:  # noqa: BLE001
+                        failed_downloads += 1
+                        download_status = f"failed: {exc}"
+
+                accepted += 1
+                species_bar.update(1)
+                species_bar.set_postfix_str(f"accepted={accepted} failures={failed_downloads}")
+                global_bar.update(1)
+                global_bar.set_postfix_str(f"species={species.slug} accepted={accepted}")
+                if not args.metadata_only and args.sleep > 0:
+                    time.sleep(args.sleep)
+
+            species_bar.close()
+            summary["species"][species.class_name] = {
+                "scientific_name": species.scientific_name,
+                "accepted_records": accepted,
+                "failed_downloads": failed_downloads,
+                "source": "manifest",
+                "manifest_records": len(records),
+            }
+
+    return summary
 
 
 def load_species(path: Path) -> list[Species]:
