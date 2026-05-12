@@ -121,6 +121,11 @@ def parse_args() -> argparse.Namespace:
         help="Recreate existing output snippets.",
     )
     parser.add_argument(
+        "--delete-source-after-success",
+        action="store_true",
+        help="Delete the raw source file after a snippet is successfully exported.",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Print per-file failures and fallback decisions.",
@@ -437,6 +442,9 @@ def main() -> int:
                         "source_manifest": source_meta,
                     }
                     manifest.write(json.dumps(payload, sort_keys=True) + "\n")
+                    manifest.flush()
+                    if args.delete_source_after_success:
+                        audio_path.unlink(missing_ok=True)
                     processed += 1
                 except Exception as exc:  # noqa: BLE001
                     failed += 1

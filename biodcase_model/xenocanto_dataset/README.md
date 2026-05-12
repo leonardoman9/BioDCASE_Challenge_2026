@@ -106,6 +106,14 @@ python preprocess_xenocanto.py \
   --raw-audio-dir /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k/raw_audio \
   --manifest-path /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k/metadata/recordings.jsonl \
   --output-dir /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k_processed_24k_3s
+
+# If disk space is tight, delete each raw file after its snippet is written:
+python preprocess_xenocanto.py \
+  --input-root /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k \
+  --raw-audio-dir /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k/raw_audio \
+  --manifest-path /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k/metadata/recordings.jsonl \
+  --output-dir /mnt/sda4/datasets/xenocanto_biodcase_2025cutoff_10k_processed_24k_3s \
+  --delete-source-after-success
 ```
 
 Output layout:
