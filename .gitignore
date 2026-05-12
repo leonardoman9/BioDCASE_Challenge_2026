@@ -53,3 +53,4 @@ mlruns/
 *.h5
 *.keras
 *.npz
+*.pdf
