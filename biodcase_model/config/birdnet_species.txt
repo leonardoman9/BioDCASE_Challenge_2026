@@ -1,0 +1,10 @@
+Anas platyrhynchos_Mallard
+Cyanistes caeruleus_Eurasian Blue Tit
+Dendrocopos major_Great Spotted Woodpecker
+Fringilla coelebs_Common Chaffinch
+Parus major_Great Tit
+Phylloscopus collybita_Common Chiffchaff
+Strix aluco_Tawny Owl
+Sylvia atricapilla_Eurasian Blackcap
+Turdus merula_Eurasian Blackbird
+Turdus philomelos_Song Thrush

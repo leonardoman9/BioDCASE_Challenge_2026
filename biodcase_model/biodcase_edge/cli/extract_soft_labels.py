@@ -22,7 +22,8 @@ def main(argv=None) -> None:
     fallback_to_hard = bool(teacher_cfg.get("fallback_to_hard_labels", True))
     species_map = dict(teacher_cfg.get("species_map", {}))
 
-    analyzer = _load_birdnet_analyzer()
+    species_list_path = teacher_cfg.get("species_list_path", None)
+    analyzer = _load_birdnet_analyzer(species_list_path)
     if analyzer is None:
         if not fallback_to_hard:
             raise RuntimeError("BirdNET is unavailable and fallback_to_hard_labels=false")
@@ -80,12 +81,20 @@ def _hard_vector(label: int, num_classes: int) -> list[float]:
     return vector
 
 
-def _load_birdnet_analyzer() -> Any | None:
+def _load_birdnet_analyzer(species_list_path: str | Path | None = None) -> Any | None:
     try:
         from birdnetlib import Recording  # noqa: F401
         from birdnetlib.analyzer import Analyzer
 
-        return Analyzer()
+        kwargs = {}
+        if species_list_path is not None:
+            path = Path(species_list_path)
+            if path.exists():
+                kwargs["custom_species_list_path"] = str(path)
+                log.info("BirdNET using custom species list: %s", path)
+            else:
+                log.warning("Species list not found: %s — using full BirdNET vocabulary", path)
+        return Analyzer(**kwargs)
     except Exception as exc:
         log.warning("Could not initialize BirdNET analyzer: %s", exc)
         return None

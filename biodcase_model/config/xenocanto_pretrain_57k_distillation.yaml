@@ -29,6 +29,7 @@ distillation:
     confidence_threshold: 0.05
     fallback_to_hard_labels: true
     background_policy: hard_background
+    species_list_path: config/birdnet_species.txt
     species_map:
       Background: Background
       Common Chaffinch: Common Chaffinch
