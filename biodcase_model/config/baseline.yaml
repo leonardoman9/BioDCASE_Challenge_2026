@@ -65,8 +65,10 @@ optimizer:
   weight_decay: 1.5e-2
   betas: [0.9, 0.999]
   eps: 1.0e-8
-  breakpoint_lr: 8.0e-4
-  transition_width_lr: 8.0e-4
+  breakpoint_lr: 5.0e-2
+  transition_width_lr: 1.0e-2
+  breakpoint_weight_decay: 0.0
+  transition_width_weight_decay: 0.0
 
 scheduler:
   enabled: true

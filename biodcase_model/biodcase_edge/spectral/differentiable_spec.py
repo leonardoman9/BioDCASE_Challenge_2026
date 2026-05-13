@@ -402,15 +402,12 @@ class DifferentiableSpectrogram(nn.Module):
         self.trainable_filterbank = trainable_filterbank
         self.spec_type = spec_type
         self.debug = debug
+        self.register_buffer("filter_parametrization_version", torch.tensor(2, dtype=torch.int32))
 
         # Rendi breakpoint e transition_width parametri apprendibili se richiesto
         if self.trainable_filterbank and self.spec_type == "combined_log_linear":
-            # Inizializza come scalari, ma nn.Parameter li renderà tensori 0-dim
-            self.breakpoint = nn.Parameter(torch.tensor(float(initial_breakpoint)))
-            self.transition_width = nn.Parameter(torch.tensor(float(initial_transition_width)))
-            # Si potrebbe aggiungere un clamp o una trasformazione (es. softplus) per transition_width 
-            # se si vuole che rimanga positivo o in un certo range.
-            # Per breakpoint, potrebbe essere necessario un clamp all'intervallo [f_min, f_max]
+            self.breakpoint = nn.Parameter(self._hz_to_breakpoint_raw(float(initial_breakpoint), float(f_min), float(f_max)))
+            self.transition_width = nn.Parameter(self._width_to_transition_raw(float(initial_transition_width)))
         else:
             # Mantienili come attributi fissi (float) se non devono essere addestrati o se il tipo di spec è diverso
             # Registra come buffer se vuoi che siano nello state_dict ma non apprendibili
@@ -424,6 +421,47 @@ class DifferentiableSpectrogram(nn.Module):
         # Aggiungi cache per la filter bank
         self._filter_bank_cache = None
         self._cached_params = {}
+
+    @staticmethod
+    def _hz_to_breakpoint_raw(value_hz: float, f_min: float, f_max: float) -> torch.Tensor:
+        eps = 1e-6
+        normalized = (value_hz - f_min) / max(f_max - f_min, eps)
+        normalized = min(max(normalized, eps), 1.0 - eps)
+        tensor = torch.tensor(normalized, dtype=torch.float32)
+        return torch.logit(tensor)
+
+    @staticmethod
+    def _width_to_transition_raw(value: float) -> torch.Tensor:
+        tensor = torch.tensor(max(value, 1e-6), dtype=torch.float32)
+        return torch.log(tensor)
+
+    def effective_breakpoint(self) -> torch.Tensor:
+        if self.trainable_filterbank and self.spec_type == "combined_log_linear":
+            normalized = torch.sigmoid(self.breakpoint)
+            return self.f_min + normalized * (self.f_max - self.f_min)
+        return self.breakpoint
+
+    def effective_transition_width(self) -> torch.Tensor:
+        if self.trainable_filterbank and self.spec_type == "combined_log_linear":
+            return torch.exp(self.transition_width)
+        return self.transition_width
+
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        version_key = f"{prefix}filter_parametrization_version"
+        bp_key = f"{prefix}breakpoint"
+        tw_key = f"{prefix}transition_width"
+        if self.trainable_filterbank and self.spec_type == "combined_log_linear" and version_key not in state_dict:
+            if bp_key in state_dict:
+                state_dict[bp_key] = self._hz_to_breakpoint_raw(
+                    float(state_dict[bp_key]),
+                    float(self.f_min.item()),
+                    float(self.f_max.item()),
+                )
+            if tw_key in state_dict:
+                state_dict[tw_key] = self._width_to_transition_raw(float(state_dict[tw_key]))
+        super()._load_from_state_dict(
+            state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+        )
 
     def rebuild_filters(self):
         """
@@ -459,8 +497,8 @@ class DifferentiableSpectrogram(nn.Module):
 
             # Usa i valori correnti di breakpoint e transition_width (che sono nn.Parameter se trainable)
             # f_min e f_max sono buffer, quindi già tensori.
-            current_breakpoint = self.breakpoint 
-            current_transition_width = self.transition_width
+            current_breakpoint = self.effective_breakpoint()
+            current_transition_width = self.effective_transition_width()
             
             # Allow breakpoint to go to any value - no artificial constraints
             # The system can naturally find the optimal breakpoint, even if very low
@@ -589,23 +627,22 @@ class DifferentiableSpectrogram(nn.Module):
         Restituisce la filter bank corrente, usando una cache per efficienza.
         La cache viene invalidata se i parametri apprendibili cambiano.
         """
-        # Controlla se i parametri sono cambiati (per invalidare la cache)
-        params_have_changed = False
         if self.spec_type == "combined_log_linear":
-            current_params = {
-                'breakpoint': self.breakpoint.item(),
-                'transition_width': self.transition_width.item()
-            }
-            if not self._cached_params or self._cached_params != current_params:
-                params_have_changed = True
-                self._cached_params = current_params
+            center_freqs = self._get_triangular_filter_centers(device=device)
+            if center_freqs is None:
+                raise ValueError(f"Center frequencies could not be computed for spec_type: {self.spec_type}")
+            return self._generate_triangular_filter_bank_from_centers(center_freqs, device=device)
 
-        if self._filter_bank_cache is not None and not params_have_changed:
+        if self._filter_bank_cache is not None:
             return self._filter_bank_cache.to(device)
 
         # Se non in cache o parametri cambiati, ricalcola
-        if self.debug and params_have_changed:
-            logger.debug("Spec: rebuilding filter bank (breakpoint=%s, transition_width=%s)", self.breakpoint.item(), self.transition_width.item())
+        if self.debug and self.spec_type == "combined_log_linear":
+            logger.debug(
+                "Spec: rebuilding filter bank (breakpoint=%s, transition_width=%s)",
+                self.effective_breakpoint().item(),
+                self.effective_transition_width().item(),
+            )
 
         # Ricalcola la filter bank in base al tipo
         if self.spec_type == "mel":
@@ -628,7 +665,7 @@ class DifferentiableSpectrogram(nn.Module):
             # Per STFT lineare, non c'è una filter bank; il risultato dell'STFT viene usato direttamente.
             self._filter_bank_cache = None
             
-        elif self.spec_type in ["linear_triangular", "combined_log_linear"]:
+        elif self.spec_type == "linear_triangular":
             # Entrambi questi tipi generano filtri triangolari basati su frequenze centrali.
             center_freqs = self._get_triangular_filter_centers(device=device)
             if center_freqs is None:

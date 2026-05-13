@@ -89,6 +89,8 @@ class BioDCASEExperiment(L.LightningModule):
         self.log("val/weighted_f1_epoch", summary.weighted_f1, prog_bar=False)
         self.log("val/weighted_precision_epoch", summary.weighted_precision, prog_bar=False)
         self.log("val/weighted_recall_epoch", summary.weighted_recall, prog_bar=False)
+        for name, value in self._frontend_parameter_metrics().items():
+            self.log(name, value, prog_bar=False)
 
         if not self.trainer.sanity_checking:
             output_dir = self._output_dir()
@@ -110,11 +112,11 @@ class BioDCASEExperiment(L.LightningModule):
         optim_cfg = self.cfg.optimizer
         lr = float(optim_cfg.lr)
         weight_decay = float(optim_cfg.get("weight_decay", 0.0))
-        param_groups = self._parameter_groups(lr)
+        param_groups = self._parameter_groups(lr, weight_decay)
         optimizer = torch.optim.AdamW(
             param_groups,
             lr=lr,
-            weight_decay=weight_decay,
+            weight_decay=0.0,
             betas=tuple(optim_cfg.get("betas", (0.9, 0.999))),
             eps=float(optim_cfg.get("eps", 1e-8)),
         )
@@ -208,9 +210,11 @@ class BioDCASEExperiment(L.LightningModule):
             )
         raise ValueError(f"Unexpected batch length: {len(batch)}")
 
-    def _parameter_groups(self, base_lr: float) -> list[dict[str, Any]]:
+    def _parameter_groups(self, base_lr: float, base_weight_decay: float) -> list[dict[str, Any]]:
         breakpoint_lr = float(self.cfg.optimizer.get("breakpoint_lr", base_lr))
         transition_lr = float(self.cfg.optimizer.get("transition_width_lr", base_lr))
+        breakpoint_weight_decay = float(self.cfg.optimizer.get("breakpoint_weight_decay", 0.0))
+        transition_weight_decay = float(self.cfg.optimizer.get("transition_width_weight_decay", 0.0))
         groups: dict[str, list[torch.nn.Parameter]] = {
             "main": [],
             "breakpoint": [],
@@ -228,12 +232,27 @@ class BioDCASEExperiment(L.LightningModule):
 
         result = []
         if groups["main"]:
-            result.append({"params": groups["main"], "lr": base_lr})
+            result.append({"params": groups["main"], "lr": base_lr, "weight_decay": base_weight_decay})
         if groups["breakpoint"]:
-            result.append({"params": groups["breakpoint"], "lr": breakpoint_lr})
+            result.append(
+                {"params": groups["breakpoint"], "lr": breakpoint_lr, "weight_decay": breakpoint_weight_decay}
+            )
         if groups["transition"]:
-            result.append({"params": groups["transition"], "lr": transition_lr})
+            result.append(
+                {"params": groups["transition"], "lr": transition_lr, "weight_decay": transition_weight_decay}
+            )
         return result
+
+    def _frontend_parameter_metrics(self) -> dict[str, torch.Tensor]:
+        spec = getattr(self.model, "combined_log_linear_spec", None)
+        if spec is None:
+            return {}
+        metrics: dict[str, torch.Tensor] = {}
+        if hasattr(spec, "effective_breakpoint"):
+            metrics["frontend/breakpoint_hz"] = spec.effective_breakpoint().detach()
+        if hasattr(spec, "effective_transition_width"):
+            metrics["frontend/transition_width"] = spec.effective_transition_width().detach()
+        return metrics
 
     def _output_dir(self) -> Path:
         if self.trainer.logger and getattr(self.trainer.logger, "log_dir", None):

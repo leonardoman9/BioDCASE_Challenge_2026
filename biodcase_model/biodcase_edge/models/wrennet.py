@@ -68,8 +68,6 @@ class Improved_Phi_GRU_ATT(nn.Module):
         self.n_linear_filters = n_linear_filters # Store n_linear_filters
         self.f_min = f_min
         self.f_max = f_max if f_max is not None else self.sample_rate / 2.0
-        self.breakpoint = breakpoint
-        self.transition_width = transition_width
 
         current_n_input_features = 0
         self.mel_transform = None
@@ -77,9 +75,20 @@ class Improved_Phi_GRU_ATT(nn.Module):
         self.linear_filterbank = None
         self.differentiable_spec = None
         self.combined_log_linear_spec = None
-
-        # Aggiungi un metodo per aggiornare i filtri in modo esplicito
-        self.update_filters()
+        self._spectrogram_config = {
+            'spectrogram_type': self.spectrogram_type,
+            'sample_rate': self.sample_rate,
+            'n_linear_filters': self.n_linear_filters,
+            'f_min': self.f_min,
+            'f_max': self.f_max,
+            'n_fft': self.n_fft,
+            'hop_length': self.hop_length,
+            'initial_breakpoint': breakpoint,
+            'initial_transition_width': transition_width,
+            'filter_init_strategy': kwargs.get('filter_init_strategy', 'triangular_noise'),
+            'trainable_filterbank': True,
+            'debug': False,
+        }
 
         if self.spectrogram_type == "mel":
             self.mel_transform = torchaudio.transforms.MelSpectrogram(
@@ -114,23 +123,7 @@ class Improved_Phi_GRU_ATT(nn.Module):
             )
             current_n_input_features = self.n_linear_filters
         elif self.spectrogram_type in ["combined_log_linear", "fully_learnable"]:
-            # Usa la factory function per creare il modulo spectrogram corretto
-            spectrogram_config = {
-                'spectrogram_type': self.spectrogram_type,
-                'sample_rate': self.sample_rate,
-                'n_linear_filters': self.n_linear_filters,
-                'f_min': self.f_min,
-                'f_max': self.f_max,
-                'n_fft': self.n_fft,
-                'hop_length': self.hop_length,
-                'initial_breakpoint': self.breakpoint,
-                'initial_transition_width': self.transition_width,
-                'filter_init_strategy': kwargs.get('filter_init_strategy', 'triangular_noise'),
-                'trainable_filterbank': True,
-                'debug': False
-            }
-            
-            self.combined_log_linear_spec = create_spectrogram_module(spectrogram_config)
+            self.combined_log_linear_spec = create_spectrogram_module(self._spectrogram_config)
             current_n_input_features = self.n_linear_filters
         else:
             raise ValueError(f"Unsupported spectrogram_type: {self.spectrogram_type}. Choose 'mel', 'linear_stft', 'linear_triangular', 'combined_log_linear', or 'fully_learnable'.")
@@ -159,36 +152,11 @@ class Improved_Phi_GRU_ATT(nn.Module):
         basato sui parametri correnti del modello (es. breakpoint).
         """
         if self.spectrogram_type in ["combined_log_linear", "fully_learnable"]:
-            spectrogram_config = {
-                'spectrogram_type': self.spectrogram_type,
-                'sample_rate': self.sample_rate,
-                'n_linear_filters': self.n_linear_filters,
-                'f_min': self.f_min,
-                'f_max': self.f_max,
-                'n_fft': self.n_fft,
-                'hop_length': self.hop_length,
-                'initial_breakpoint': self.breakpoint,
-                'initial_transition_width': self.transition_width,
-                'trainable_filterbank': True, # Assicurati che sia True
-                'debug': False
-            }
-            
-            # Se il modulo esiste già, aggiorna i suoi parametri interni.
-            # Altrimenti, crealo.
             if self.combined_log_linear_spec is None:
-                self.combined_log_linear_spec = create_spectrogram_module(spectrogram_config)
+                self.combined_log_linear_spec = create_spectrogram_module(self._spectrogram_config)
             else:
-                # Se i parametri sono learnable, vengono aggiornati dal gradiente.
-                # Se sono fissi ma devono essere cambiati (es. in _test_filter_candidates),
-                # la modifica diretta di `self.model.combined_log_linear_spec.breakpoint`
-                # è sufficiente, ma dobbiamo assicurarci che il ricalcolo della filterbank
-                # avvenga. Aggiungiamo un metodo a DifferentiableSpectrogram.
                 if hasattr(self.combined_log_linear_spec, 'rebuild_filters'):
                     self.combined_log_linear_spec.rebuild_filters()
-                else:
-                    # Fallback se il metodo non esiste: ricreare il modulo
-                    # (meno efficiente ma garantisce il funzionamento)
-                    self.combined_log_linear_spec = create_spectrogram_module(spectrogram_config)
 
     def forward(self, x):
             if x.dim() == 2:
