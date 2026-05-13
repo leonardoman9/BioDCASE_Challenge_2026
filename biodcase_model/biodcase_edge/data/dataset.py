@@ -162,8 +162,5 @@ class BioDCASEDataset(Dataset):
                 f"Soft-label vector for {record.path.name} has {tensor.numel()} classes; "
                 f"expected {len(self.class_map)}"
             )
-        total = tensor.sum()
-        if total > 0:
-            tensor = tensor / total
         return tensor, mask
 
