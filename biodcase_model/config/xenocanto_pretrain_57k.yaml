@@ -1,0 +1,30 @@
+defaults:
+  - baseline_57k
+  - _self_
+
+project:
+  name: xenocanto_pretrain_57k
+
+data:
+  use_augmentation: true
+  batch_size: 32
+  num_workers: 2
+  pin_memory: true
+  persistent_workers: false
+
+trainer:
+  max_epochs: 30
+  accelerator: auto
+  devices: 1
+
+checkpoint:
+  monitor: val_macro_f1
+  mode: max
+  save_top_k: 1
+
+early_stopping:
+  enabled: true
+  monitor: val_macro_f1
+  mode: max
+  patience: 8
+  min_delta: 0.0005
