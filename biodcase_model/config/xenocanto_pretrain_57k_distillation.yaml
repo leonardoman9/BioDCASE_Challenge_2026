@@ -1,0 +1,65 @@
+defaults:
+  - baseline_57k
+  - _self_
+
+project:
+  name: xenocanto_pretrain_57k_distillation
+
+# Override on command line:
+#   data.dataset_dir=/mnt/sda4/datasets/xenocanto_biodcase_split11
+#   data.class_map_path=outputs/xenocanto_class_map.json
+data:
+  use_augmentation: true
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+
+loss:
+  type: focal_distillation
+  gamma: 2.0
+  class_weights: auto
+
+distillation:
+  enabled: true
+  soft_labels_path: outputs/xenocanto_soft_labels
+  alpha: 0.30
+  temperature: 4.0
+  teacher:
+    confidence_threshold: 0.05
+    fallback_to_hard_labels: true
+    background_policy: hard_background
+    species_map:
+      Background: Background
+      Common Chaffinch: Common Chaffinch
+      Common Chiffchaff: Common Chiffchaff
+      Eurasian Blackbird: Eurasian Blackbird
+      Eurasian Blackcap: Eurasian Blackcap
+      Eurasian Blue Tit: Eurasian Blue Tit
+      Great Spotted Woodpecker: Great Spotted Woodpecker
+      Great Tit: Great Tit
+      Mallard: Mallard
+      Song Thrush: Song Thrush
+      Tawny Owl: Tawny Owl
+
+scheduler:
+  enabled: true
+  type: cosine
+  min_lr: 5.0e-7
+
+trainer:
+  max_epochs: 30
+  accelerator: auto
+  devices: 1
+
+checkpoint:
+  monitor: val_macro_f1
+  mode: max
+  save_top_k: 1
+
+early_stopping:
+  enabled: true
+  monitor: val_macro_f1
+  mode: max
+  patience: 8
+  min_delta: 0.0005

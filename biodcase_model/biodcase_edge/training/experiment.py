@@ -124,12 +124,27 @@ class BioDCASEExperiment(L.LightningModule):
         scheduler_cfg = self.cfg.get("scheduler")
         if not scheduler_cfg or not scheduler_cfg.get("enabled", False):
             return optimizer
+
+        sched_type = str(scheduler_cfg.get("type", "plateau"))
+        min_lr = float(scheduler_cfg.get("min_lr", 5e-7))
+
+        if sched_type == "cosine":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer,
+                T_max=int(self.cfg.trainer.max_epochs),
+                eta_min=min_lr,
+            )
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {"scheduler": scheduler, "interval": "epoch", "frequency": 1},
+            }
+
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
             mode=str(scheduler_cfg.get("mode", "min")),
             factor=float(scheduler_cfg.get("factor", 0.6)),
             patience=int(scheduler_cfg.get("patience", 7)),
-            min_lr=float(scheduler_cfg.get("min_lr", 5e-7)),
+            min_lr=min_lr,
         )
         return {
             "optimizer": optimizer,

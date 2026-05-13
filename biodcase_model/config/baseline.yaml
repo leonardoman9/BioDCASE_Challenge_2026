@@ -72,6 +72,7 @@ optimizer:
 
 scheduler:
   enabled: true
+  type: plateau
   monitor: val/loss
   mode: min
   factor: 0.6
