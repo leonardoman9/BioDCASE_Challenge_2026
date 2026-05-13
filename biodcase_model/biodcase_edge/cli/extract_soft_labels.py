@@ -21,7 +21,6 @@ def main(argv=None) -> None:
     teacher_cfg = cfg.distillation.get("teacher", {})
     fallback_to_hard = bool(teacher_cfg.get("fallback_to_hard_labels", True))
     species_map = dict(teacher_cfg.get("species_map", {}))
-    label_smoothing = float(cfg.distillation.get("label_smoothing", 0.0))
 
     analyzer = _load_birdnet_analyzer()
     if analyzer is None:
@@ -48,9 +47,6 @@ def main(argv=None) -> None:
                     fallback_to_hard=fallback_to_hard,
                     confidence_threshold=float(teacher_cfg.get("confidence_threshold", 0.05)),
                 )
-                if label_smoothing > 0.0:
-                    uniform = 1.0 / len(class_names)
-                    vector = [(1 - label_smoothing) * p + label_smoothing * uniform for p in vector]
             soft_labels[key] = vector
             processed += 1
             if processed % 250 == 0:
@@ -71,7 +67,6 @@ def main(argv=None) -> None:
             "confidence_threshold": float(teacher_cfg.get("confidence_threshold", 0.05)),
             "files_processed": processed,
             "background_policy": str(teacher_cfg.get("background_policy", "hard_background")),
-            "label_smoothing": label_smoothing,
         },
         "soft_labels": soft_labels,
     }
@@ -125,10 +120,14 @@ def _teacher_vector(
         if label in mapped:
             scores[mapped[label]] = max(scores[mapped[label]], confidence)
 
-    total = sum(scores)
-    if total <= 0:
+    if sum(scores) <= 0:
         return _hard_vector(hard_label, len(class_names)) if fallback_to_hard else _uniform(len(class_names))
-    return [score / total for score in scores]
+
+    # Return raw BirdNET confidence scores without normalizing.
+    # The distillation loss applies softmax(scores / T) at training time,
+    # so a single detection at 0.7 produces a genuinely soft distribution
+    # rather than a one-hot after normalization.
+    return scores
 
 
 def _uniform(num_classes: int) -> list[float]:
