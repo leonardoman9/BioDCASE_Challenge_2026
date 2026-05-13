@@ -22,9 +22,10 @@ loss:
 
 distillation:
   enabled: true
-  soft_labels_path: outputs/xenocanto_soft_labels
+  soft_labels_path: outputs/xenocanto_soft_labels/soft_labels_smoothed.json
   alpha: 0.30
   temperature: 4.0
+  label_smoothing: 0.1
   teacher:
     confidence_threshold: 0.05
     fallback_to_hard_labels: true

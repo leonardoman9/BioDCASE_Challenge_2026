@@ -21,6 +21,7 @@ def main(argv=None) -> None:
     teacher_cfg = cfg.distillation.get("teacher", {})
     fallback_to_hard = bool(teacher_cfg.get("fallback_to_hard_labels", True))
     species_map = dict(teacher_cfg.get("species_map", {}))
+    label_smoothing = float(cfg.distillation.get("label_smoothing", 0.0))
 
     analyzer = _load_birdnet_analyzer()
     if analyzer is None:
@@ -47,13 +48,21 @@ def main(argv=None) -> None:
                     fallback_to_hard=fallback_to_hard,
                     confidence_threshold=float(teacher_cfg.get("confidence_threshold", 0.05)),
                 )
+                if label_smoothing > 0.0:
+                    uniform = 1.0 / len(class_names)
+                    vector = [(1 - label_smoothing) * p + label_smoothing * uniform for p in vector]
             soft_labels[key] = vector
             processed += 1
             if processed % 250 == 0:
                 log.info("Processed %s files", processed)
 
-    output_dir = Path(cfg.distillation.soft_labels_path)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    out_path = Path(cfg.distillation.soft_labels_path)
+    if out_path.suffix == ".json":
+        output_file = out_path
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        out_path.mkdir(parents=True, exist_ok=True)
+        output_file = out_path / "soft_labels.json"
     payload = {
         "metadata": {
             "teacher": "BirdNET" if analyzer is not None else "hard_label_fallback",
@@ -62,11 +71,12 @@ def main(argv=None) -> None:
             "confidence_threshold": float(teacher_cfg.get("confidence_threshold", 0.05)),
             "files_processed": processed,
             "background_policy": str(teacher_cfg.get("background_policy", "hard_background")),
+            "label_smoothing": label_smoothing,
         },
         "soft_labels": soft_labels,
     }
-    write_json(payload, output_dir / "soft_labels.json")
-    log.info("Soft labels saved to %s", output_dir / "soft_labels.json")
+    write_json(payload, output_file)
+    log.info("Soft labels saved to %s", output_file)
 
 
 def _hard_vector(label: int, num_classes: int) -> list[float]:
