@@ -7,6 +7,7 @@ import lightning as L
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
 from omegaconf import OmegaConf
+import torch
 
 from biodcase_edge.cli.common import load_config, parse_config_args, save_resolved_config
 from biodcase_edge.data import BioDCASEDataModule
@@ -24,6 +25,34 @@ def compute_balanced_class_weights(counts: dict[str, int], class_names: list[str
         count = max(1, counts.get(name, 0))
         weights.append(total / (num_classes * count))
     return weights
+
+
+def maybe_load_init_checkpoint(experiment: BioDCASEExperiment, checkpoint_path: str | None) -> None:
+    if not checkpoint_path:
+        return
+    path = Path(checkpoint_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Initial checkpoint not found: {path}")
+
+    checkpoint = torch.load(path, map_location="cpu")
+    state_dict = checkpoint.get("state_dict", checkpoint)
+    model_state = {
+        key[len("model."):] if key.startswith("model.") else key: value
+        for key, value in state_dict.items()
+        if key.startswith("model.") or key in experiment.model.state_dict()
+    }
+    missing, unexpected = experiment.model.load_state_dict(model_state, strict=False)
+    log.info(
+        "Initialized model weights from %s (loaded=%d, missing=%d, unexpected=%d)",
+        path,
+        len(model_state),
+        len(missing),
+        len(unexpected),
+    )
+    if missing:
+        log.info("Missing keys after init checkpoint load: %s", missing)
+    if unexpected:
+        log.info("Unexpected keys in init checkpoint load: %s", unexpected)
 
 
 def main(argv=None) -> None:
@@ -49,6 +78,7 @@ def main(argv=None) -> None:
         log.info("Computed balanced focal class weights: %s", cfg.loss.class_weights)
 
     experiment = BioDCASEExperiment(cfg, class_names=class_names)
+    maybe_load_init_checkpoint(experiment, cfg.get("init_checkpoint"))
     logger = CSVLogger(save_dir=str(run_dir), name="csv", version="")
 
     callbacks = []

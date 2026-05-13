@@ -6,6 +6,8 @@ project:
   seed: 42
   output_dir: outputs
 
+init_checkpoint: null
+
 logging:
   level: INFO
   log_dir: logs

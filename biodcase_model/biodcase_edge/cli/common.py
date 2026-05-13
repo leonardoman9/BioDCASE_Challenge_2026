@@ -42,6 +42,8 @@ def normalize_paths(cfg: DictConfig) -> None:
                 cfg.data[key] = str(_resolve(cfg.data[key], root))
     if "distillation" in cfg and "soft_labels_path" in cfg.distillation:
         cfg.distillation.soft_labels_path = str(_resolve(cfg.distillation.soft_labels_path, root))
+    if "init_checkpoint" in cfg and cfg.init_checkpoint:
+        cfg.init_checkpoint = str(_resolve(cfg.init_checkpoint, root))
     if "export" in cfg:
         for key in ("checkpoint", "output_path"):
             if key in cfg.export and cfg.export[key]:
@@ -59,4 +61,3 @@ def _resolve(path: str | Path, root: Path) -> Path:
     if path.is_absolute():
         return path
     return (root / path).resolve()
-
