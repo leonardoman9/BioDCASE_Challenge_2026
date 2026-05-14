@@ -161,17 +161,9 @@ class BioDCASEDataset(Dataset):
                 f"expected {len(self.class_map)}"
             )
 
-        if not found:
-            mask = torch.tensor(False)
-        else:
-            # mask=True only when BirdNET provided genuine scores.
-            # Hard one-hot fallbacks (background or no detection) have a single
-            # entry at 1.0 — detecting them here avoids polluting the soft loss
-            # with artificial teacher signal.
-            is_hard_onehot = (tensor.max().item() >= 1.0 - 1e-6) and (
-                (tensor > 1e-6).sum().item() == 1
-            )
-            mask = torch.tensor(not is_hard_onehot)
+        # Match the rf4423 distillation behavior:
+        # if a sample has soft labels in the JSON, it participates in
+        # distillation; otherwise it falls back to supervised-only loss.
+        mask = torch.tensor(found)
 
         return tensor, mask
-

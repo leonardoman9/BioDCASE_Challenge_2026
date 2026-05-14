@@ -146,14 +146,13 @@ class FocalDistillationLoss(nn.Module):
         # Hard loss using Focal Loss (better for imbalanced classes)
         loss_hard = self.focal_loss(student_logits, hard_labels)
 
-        # teacher_soft_labels are raw BirdNET confidence scores in [0, 1], not logits.
-        # Normalize them to a valid probability distribution without temperature scaling.
-        # Temperature is applied only to the student to soften its distribution.
-        teacher_sum = teacher_soft_labels.sum(dim=1, keepdim=True).clamp(min=1e-8)
-        teacher_dist = teacher_soft_labels / teacher_sum
-
+        # Match rf4423 distillation behavior:
+        # treat the stored teacher scores as pre-softmax values, apply the same
+        # temperature to student and teacher, and scale the KL term by T^2.
         student_soft = F.log_softmax(student_logits / self.temperature, dim=1)
-        loss_soft = self.soft_loss(student_soft, teacher_dist)
+        teacher_soft = F.softmax(teacher_soft_labels / self.temperature, dim=1)
+        loss_soft = self.soft_loss(student_soft, teacher_soft)
+        loss_soft = loss_soft * (self.temperature ** 2)
 
         # Combine losses
         total_loss = (1.0 - self.alpha) * loss_hard + self.alpha * loss_soft
