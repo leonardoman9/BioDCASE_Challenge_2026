@@ -26,7 +26,8 @@ distillation:
   alpha: 0.10
   temperature: 4.0
   teacher:
-    confidence_threshold: 0.05
+    confidence_threshold: 0.01
+    aggregation: sum
     fallback_to_hard_labels: true
     background_policy: hard_background
     species_list_path: config/birdnet_species.txt

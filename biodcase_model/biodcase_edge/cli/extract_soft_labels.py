@@ -25,6 +25,10 @@ def main(argv=None) -> None:
     background_idx = class_map.get("Background")
     teacher_cfg = cfg.distillation.get("teacher", {})
     species_map = dict(teacher_cfg.get("species_map", {}))
+    confidence_threshold = float(teacher_cfg.get("confidence_threshold", 0.05))
+    aggregation = str(teacher_cfg.get("aggregation", "max")).lower()
+    if aggregation not in {"max", "sum"}:
+        raise ValueError(f"Unsupported teacher aggregation '{aggregation}'. Expected 'max' or 'sum'.")
 
     species_list_path = teacher_cfg.get("species_list_path", None)
     analyzer = _load_birdnet_analyzer(species_list_path)
@@ -65,7 +69,8 @@ def main(argv=None) -> None:
                     class_names,
                     species_map,
                     background_idx=background_idx,
-                    confidence_threshold=float(teacher_cfg.get("confidence_threshold", 0.05)),
+                    confidence_threshold=confidence_threshold,
+                    aggregation=aggregation,
                 )
             soft_labels[key] = vector
             processed += 1
@@ -76,7 +81,8 @@ def main(argv=None) -> None:
                     output_file=output_file,
                     analyzer=analyzer,
                     class_names=class_names,
-                    confidence_threshold=float(teacher_cfg.get("confidence_threshold", 0.05)),
+                    confidence_threshold=confidence_threshold,
+                    aggregation=aggregation,
                     processed=processed,
                     soft_labels=soft_labels,
                     in_progress=True,
@@ -88,7 +94,8 @@ def main(argv=None) -> None:
         output_file=output_file,
         analyzer=analyzer,
         class_names=class_names,
-        confidence_threshold=float(teacher_cfg.get("confidence_threshold", 0.05)),
+        confidence_threshold=confidence_threshold,
+        aggregation=aggregation,
         processed=processed,
         soft_labels=soft_labels,
         in_progress=False,
@@ -128,6 +135,7 @@ def _teacher_vector(
     species_map: dict[str, str],
     background_idx: int | None,
     confidence_threshold: float,
+    aggregation: str,
 ) -> list[float]:
     try:
         from birdnetlib import Recording
@@ -149,10 +157,18 @@ def _teacher_vector(
         label = str(det.get("common_name") or det.get("scientific_name") or det.get("label") or "").lower()
         confidence = float(det.get("confidence", det.get("score", 0.0)))
         if label in mapped:
-            scores[mapped[label]] = max(scores[mapped[label]], confidence)
+            idx = mapped[label]
+            if aggregation == "sum":
+                scores[idx] += confidence
+            else:
+                scores[idx] = max(scores[idx], confidence)
             found_target = True
         elif background_idx is not None:
-            scores[background_idx] = max(scores[background_idx], confidence * 0.1)
+            background_conf = confidence * 0.1
+            if aggregation == "sum":
+                scores[background_idx] += background_conf
+            else:
+                scores[background_idx] = max(scores[background_idx], background_conf)
 
     if not found_target and detections and background_idx is not None:
         scores[background_idx] = max(scores[background_idx], 0.3)
@@ -187,6 +203,7 @@ def _write_soft_labels_payload(
     analyzer: Any | None,
     class_names: list[str],
     confidence_threshold: float,
+    aggregation: str,
     processed: int,
     soft_labels: dict[str, list[float]],
     in_progress: bool,
@@ -197,6 +214,7 @@ def _write_soft_labels_payload(
             "num_classes": len(class_names),
             "class_names": class_names,
             "confidence_threshold": confidence_threshold,
+            "aggregation": aggregation,
             "files_processed": processed,
             "background_policy": "background_absorption",
             "in_progress": in_progress,
