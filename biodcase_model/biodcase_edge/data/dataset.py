@@ -149,12 +149,10 @@ class BioDCASEDataset(Dataset):
                 vector = self.soft_labels[key]
                 break
 
-        if vector is None:
+        found = vector is not None
+        if not found:
             vector = [0.0] * len(self.class_map)
             vector[record.label] = 1.0
-            mask = torch.tensor(False)
-        else:
-            mask = torch.tensor(True)
 
         tensor = torch.tensor(vector, dtype=torch.float32)
         if tensor.numel() != len(self.class_map):
@@ -162,5 +160,18 @@ class BioDCASEDataset(Dataset):
                 f"Soft-label vector for {record.path.name} has {tensor.numel()} classes; "
                 f"expected {len(self.class_map)}"
             )
+
+        if not found:
+            mask = torch.tensor(False)
+        else:
+            # mask=True only when BirdNET provided genuine scores.
+            # Hard one-hot fallbacks (background or no detection) have a single
+            # entry at 1.0 — detecting them here avoids polluting the soft loss
+            # with artificial teacher signal.
+            is_hard_onehot = (tensor.max().item() >= 1.0 - 1e-6) and (
+                (tensor > 1e-6).sum().item() == 1
+            )
+            mask = torch.tensor(not is_hard_onehot)
+
         return tensor, mask
 

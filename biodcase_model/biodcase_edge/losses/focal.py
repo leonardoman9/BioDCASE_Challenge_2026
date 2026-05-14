@@ -134,30 +134,30 @@ class FocalDistillationLoss(nn.Module):
     def forward(self, student_logits, hard_labels, teacher_soft_labels):
         """
         Compute focal distillation loss.
-        
+
         Args:
             student_logits: Raw logits from student model [batch_size, num_classes]
             hard_labels: Ground truth class indices [batch_size]
             teacher_soft_labels: Soft probabilities from teacher [batch_size, num_classes]
-            
+
         Returns:
             tuple: (total_loss, focal_hard_loss, soft_loss)
         """
         # Hard loss using Focal Loss (better for imbalanced classes)
         loss_hard = self.focal_loss(student_logits, hard_labels)
-        
-        # Soft loss (KL divergence with teacher's soft labels)
+
+        # teacher_soft_labels are raw BirdNET confidence scores in [0, 1], not logits.
+        # Normalize them to a valid probability distribution without temperature scaling.
+        # Temperature is applied only to the student to soften its distribution.
+        teacher_sum = teacher_soft_labels.sum(dim=1, keepdim=True).clamp(min=1e-8)
+        teacher_dist = teacher_soft_labels / teacher_sum
+
         student_soft = F.log_softmax(student_logits / self.temperature, dim=1)
-        teacher_soft = F.softmax(teacher_soft_labels / self.temperature, dim=1)
-        
-        loss_soft = self.soft_loss(student_soft, teacher_soft)
-        
-        # Scale soft loss by temperature^2 (standard practice)
-        loss_soft = loss_soft * (self.temperature ** 2)
-        
+        loss_soft = self.soft_loss(student_soft, teacher_dist)
+
         # Combine losses
         total_loss = (1.0 - self.alpha) * loss_hard + self.alpha * loss_soft
-        
+
         return total_loss, loss_hard, loss_soft
 
 class AdaptiveFocalDistillationLoss(FocalDistillationLoss):

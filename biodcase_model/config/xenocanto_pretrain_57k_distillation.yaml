@@ -23,7 +23,7 @@ loss:
 distillation:
   enabled: true
   soft_labels_path: outputs/xenocanto_soft_labels
-  alpha: 0.30
+  alpha: 0.10
   temperature: 4.0
   teacher:
     confidence_threshold: 0.05
@@ -48,10 +48,15 @@ scheduler:
   type: cosine
   min_lr: 5.0e-7
 
+optimizer:
+  breakpoint_lr: 1.0e-3
+  transition_width_lr: 5.0e-4
+
 trainer:
   max_epochs: 30
   accelerator: auto
   devices: 1
+  gradient_clip_val: 1.0
 
 checkpoint:
   monitor: val_macro_f1
