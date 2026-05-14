@@ -18,34 +18,29 @@ def main(argv=None) -> None:
 
     class_map = build_class_map(cfg.data.dataset_dir, cfg.data.class_map_path)
     class_names = [name for name, _ in sorted(class_map.items(), key=lambda item: item[1])]
+    background_idx = class_map.get("Background")
     teacher_cfg = cfg.distillation.get("teacher", {})
-    fallback_to_hard = bool(teacher_cfg.get("fallback_to_hard_labels", True))
     species_map = dict(teacher_cfg.get("species_map", {}))
 
     species_list_path = teacher_cfg.get("species_list_path", None)
     analyzer = _load_birdnet_analyzer(species_list_path)
     if analyzer is None:
-        if not fallback_to_hard:
-            raise RuntimeError("BirdNET is unavailable and fallback_to_hard_labels=false")
-        log.warning("BirdNET is unavailable; writing hard-label fallback soft labels.")
+        log.warning("BirdNET is unavailable; writing weak-background soft labels.")
 
     soft_labels: dict[str, list[float]] = {}
     processed = 0
     for split in ("train", "validation"):
         for record in collect_records(cfg.data.dataset_dir, split, class_map):
             key = str(record.path.relative_to(cfg.data.dataset_dir))
-            if record.class_name == "Background":
-                vector = _hard_vector(record.label, len(class_names))
-            elif analyzer is None:
-                vector = _hard_vector(record.label, len(class_names))
+            if analyzer is None:
+                vector = _default_teacher_vector(len(class_names), background_idx, error=True)
             else:
                 vector = _teacher_vector(
                     analyzer,
                     record.path,
                     class_names,
                     species_map,
-                    hard_label=record.label,
-                    fallback_to_hard=fallback_to_hard,
+                    background_idx=background_idx,
                     confidence_threshold=float(teacher_cfg.get("confidence_threshold", 0.05)),
                 )
             soft_labels[key] = vector
@@ -62,12 +57,12 @@ def main(argv=None) -> None:
         output_file = out_path / "soft_labels.json"
     payload = {
         "metadata": {
-            "teacher": "BirdNET" if analyzer is not None else "hard_label_fallback",
+            "teacher": "BirdNET" if analyzer is not None else "background_absorption_fallback",
             "num_classes": len(class_names),
             "class_names": class_names,
             "confidence_threshold": float(teacher_cfg.get("confidence_threshold", 0.05)),
             "files_processed": processed,
-            "background_policy": str(teacher_cfg.get("background_policy", "hard_background")),
+            "background_policy": "background_absorption",
         },
         "soft_labels": soft_labels,
     }
@@ -105,8 +100,7 @@ def _teacher_vector(
     path: Path,
     class_names: list[str],
     species_map: dict[str, str],
-    hard_label: int,
-    fallback_to_hard: bool,
+    background_idx: int | None,
     confidence_threshold: float,
 ) -> list[float]:
     try:
@@ -117,10 +111,11 @@ def _teacher_vector(
         detections = getattr(recording, "detections", []) or []
     except Exception as exc:
         log.warning("BirdNET failed for %s: %s", path, exc)
-        return _hard_vector(hard_label, len(class_names)) if fallback_to_hard else _uniform(len(class_names))
+        return _default_teacher_vector(len(class_names), background_idx, error=True)
 
     scores = [0.0] * len(class_names)
     mapped = {species_map.get(name, name).lower(): idx for idx, name in enumerate(class_names)}
+    found_target = False
     for det in detections:
         if not isinstance(det, dict):
             continue
@@ -128,14 +123,18 @@ def _teacher_vector(
         confidence = float(det.get("confidence", det.get("score", 0.0)))
         if label in mapped:
             scores[mapped[label]] = max(scores[mapped[label]], confidence)
+            found_target = True
+        elif background_idx is not None:
+            scores[background_idx] = max(scores[background_idx], confidence * 0.1)
+
+    if not found_target and detections and background_idx is not None:
+        scores[background_idx] = max(scores[background_idx], 0.3)
+    if not detections and background_idx is not None:
+        scores[background_idx] = max(scores[background_idx], 0.1)
 
     if sum(scores) <= 0:
-        return _hard_vector(hard_label, len(class_names)) if fallback_to_hard else _uniform(len(class_names))
+        return _default_teacher_vector(len(class_names), background_idx, error=False)
 
-    # Return raw BirdNET confidence scores without normalizing.
-    # The distillation loss applies softmax(scores / T) at training time,
-    # so a single detection at 0.7 produces a genuinely soft distribution
-    # rather than a one-hot after normalization.
     return scores
 
 
@@ -143,6 +142,17 @@ def _uniform(num_classes: int) -> list[float]:
     return [1.0 / num_classes] * num_classes
 
 
+def _default_teacher_vector(
+    num_classes: int,
+    background_idx: int | None,
+    *,
+    error: bool,
+) -> list[float]:
+    labels = [0.0] * num_classes
+    if background_idx is not None:
+        labels[background_idx] = 0.1 if error else 0.0
+    return labels
+
+
 if __name__ == "__main__":
     main()
-
