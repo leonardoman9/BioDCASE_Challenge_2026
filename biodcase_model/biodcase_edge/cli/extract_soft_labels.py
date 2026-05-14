@@ -7,6 +7,7 @@ from typing import Any
 from biodcase_edge.cli.common import load_config, parse_config_args
 from biodcase_edge.data.dataset import build_class_map, collect_records
 from biodcase_edge.utils import configure_logging, write_json
+from tqdm.auto import tqdm
 
 log = logging.getLogger(__name__)
 
@@ -27,10 +28,22 @@ def main(argv=None) -> None:
     if analyzer is None:
         log.warning("BirdNET is unavailable; writing weak-background soft labels.")
 
+    split_records = {
+        split: collect_records(cfg.data.dataset_dir, split, class_map)
+        for split in ("train", "validation")
+    }
+    total_records = sum(len(records) for records in split_records.values())
+
     soft_labels: dict[str, list[float]] = {}
     processed = 0
-    for split in ("train", "validation"):
-        for record in collect_records(cfg.data.dataset_dir, split, class_map):
+    progress = tqdm(
+        total=total_records,
+        desc="Extract soft labels",
+        unit="file",
+        dynamic_ncols=True,
+    )
+    for split, records in split_records.items():
+        for record in records:
             key = str(record.path.relative_to(cfg.data.dataset_dir))
             if analyzer is None:
                 vector = _default_teacher_vector(len(class_names), background_idx, error=True)
@@ -45,8 +58,11 @@ def main(argv=None) -> None:
                 )
             soft_labels[key] = vector
             processed += 1
+            progress.set_postfix(split=split, file=record.path.name[:36], refresh=False)
+            progress.update(1)
             if processed % 250 == 0:
-                log.info("Processed %s files", processed)
+                log.info("Processed %s/%s files", processed, total_records)
+    progress.close()
 
     out_path = Path(cfg.distillation.soft_labels_path)
     if out_path.suffix == ".json":
