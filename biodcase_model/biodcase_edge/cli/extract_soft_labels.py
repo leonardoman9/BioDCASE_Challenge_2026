@@ -12,6 +12,7 @@ from biodcase_edge.utils import configure_logging, write_json
 from tqdm.auto import tqdm
 
 log = logging.getLogger(__name__)
+SAVE_EVERY = 250
 
 
 def main(argv=None) -> None:
@@ -35,6 +36,14 @@ def main(argv=None) -> None:
         for split in ("train", "validation")
     }
     total_records = sum(len(records) for records in split_records.values())
+
+    out_path = Path(cfg.distillation.soft_labels_path)
+    if out_path.suffix == ".json":
+        output_file = out_path
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        out_path.mkdir(parents=True, exist_ok=True)
+        output_file = out_path / "soft_labels.json"
 
     soft_labels: dict[str, list[float]] = {}
     processed = 0
@@ -62,29 +71,28 @@ def main(argv=None) -> None:
             processed += 1
             progress.set_postfix(split=split, file=record.path.name[:36], refresh=False)
             progress.update(1)
-            if processed % 250 == 0:
+            if processed % SAVE_EVERY == 0:
+                _write_soft_labels_payload(
+                    output_file=output_file,
+                    analyzer=analyzer,
+                    class_names=class_names,
+                    confidence_threshold=float(teacher_cfg.get("confidence_threshold", 0.05)),
+                    processed=processed,
+                    soft_labels=soft_labels,
+                    in_progress=True,
+                )
                 log.info("Processed %s/%s files", processed, total_records)
     progress.close()
 
-    out_path = Path(cfg.distillation.soft_labels_path)
-    if out_path.suffix == ".json":
-        output_file = out_path
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-    else:
-        out_path.mkdir(parents=True, exist_ok=True)
-        output_file = out_path / "soft_labels.json"
-    payload = {
-        "metadata": {
-            "teacher": "BirdNET" if analyzer is not None else "background_absorption_fallback",
-            "num_classes": len(class_names),
-            "class_names": class_names,
-            "confidence_threshold": float(teacher_cfg.get("confidence_threshold", 0.05)),
-            "files_processed": processed,
-            "background_policy": "background_absorption",
-        },
-        "soft_labels": soft_labels,
-    }
-    write_json(payload, output_file)
+    _write_soft_labels_payload(
+        output_file=output_file,
+        analyzer=analyzer,
+        class_names=class_names,
+        confidence_threshold=float(teacher_cfg.get("confidence_threshold", 0.05)),
+        processed=processed,
+        soft_labels=soft_labels,
+        in_progress=False,
+    )
     log.info("Soft labels saved to %s", output_file)
 
 
@@ -171,6 +179,33 @@ def _default_teacher_vector(
     if background_idx is not None:
         labels[background_idx] = 0.1 if error else 0.0
     return labels
+
+
+def _write_soft_labels_payload(
+    *,
+    output_file: Path,
+    analyzer: Any | None,
+    class_names: list[str],
+    confidence_threshold: float,
+    processed: int,
+    soft_labels: dict[str, list[float]],
+    in_progress: bool,
+) -> None:
+    payload = {
+        "metadata": {
+            "teacher": "BirdNET" if analyzer is not None else "background_absorption_fallback",
+            "num_classes": len(class_names),
+            "class_names": class_names,
+            "confidence_threshold": confidence_threshold,
+            "files_processed": processed,
+            "background_policy": "background_absorption",
+            "in_progress": in_progress,
+        },
+        "soft_labels": soft_labels,
+    }
+    tmp_file = output_file.with_suffix(output_file.suffix + ".tmp")
+    write_json(payload, tmp_file)
+    tmp_file.replace(output_file)
 
 
 if __name__ == "__main__":
