@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import logging
 from pathlib import Path
 from typing import Any
@@ -123,7 +125,8 @@ def _teacher_vector(
         from birdnetlib import Recording
 
         recording = Recording(analyzer, str(path), min_conf=confidence_threshold)
-        recording.analyze()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            recording.analyze()
         detections = getattr(recording, "detections", []) or []
     except Exception as exc:
         log.warning("BirdNET failed for %s: %s", path, exc)
