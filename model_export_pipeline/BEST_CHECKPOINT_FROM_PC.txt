@@ -1,0 +1,1 @@
+/mnt/sda4/Progetti/BioDCASE_Challenge_2026/biodcase_model/logs/biodcase_finetune_from_xenocanto_57k/2026-05-13_15-00-15/checkpoints/best-epoch=019-val_macro_f1=0.6717.ckpt

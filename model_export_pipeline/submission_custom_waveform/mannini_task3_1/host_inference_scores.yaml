@@ -1,0 +1,12 @@
+inference_score_dict:
+  accuracy_inference: 0.8182
+  accuracy_tflite: 0.8182
+  roc_auc_inference: 1.0
+  roc_auc_tflite: 1.0
+  prediction_agreement_model_vs_tflite: 1.0
+  model_size_inference_bytes: 346725
+  model_size_tflite_bytes: 4755032
+  macs_inference: N/A
+  macs_tflite: N/A
+  num_params_inference: 57552
+  num_params_tflite: 1083820

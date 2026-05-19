@@ -1,0 +1,39 @@
+# report dir
+report_dir: './reports'
+
+# test files directory
+test_file_dir: './test_wav_files'
+test_files_ext: '.wav'
+
+inference_handler:
+  add_python_paths: []
+  target_sample_rate: 24000
+  target_wav_length_sec: 3
+  model_dir: './your_submission_model'
+  saved_model_extension: '.pth'
+  tflite_model_extension: '.tflite'
+  label_dict_yaml_path: './your_submission_model/label_dict.yaml'
+
+  feature_handler:
+    module: feature_handler
+    attr: FeatureHandler
+    args: []
+    kwargs:
+      target_sample_rate: 24000
+      target_wav_length_sec: 3
+      normalize_peak: true
+      add_batch_dimension: true
+      channel_last: true
+
+  model:
+    module: biodcase_edge.models
+    attr: Improved_Phi_GRU_ATT
+    args: []
+    kwargs: {}
+
+generate_embedded_code:
+  template_dir: '../biodcase_tiny/embedded/firmware'
+  gen_code_dir: './your_generated_code'
+  gen_code_source_folder_name: 'src'
+  serial_device: '/dev/ttyUSB0'
+  quantize: false

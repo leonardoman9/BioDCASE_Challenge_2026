@@ -1,0 +1,9 @@
+.conversion_work/
+.mpl-cache/
+.cache/
+checkpoints/
+eval_data/
+exports/
+__pycache__/
+submission_custom_waveform/_staging/
+submission_custom_waveform/_matplotlib/

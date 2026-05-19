@@ -1,0 +1,84 @@
+{
+  "checkpoint": "/Users/leonardomannini/Progetti/BioDCASE/2026/model_export_pipeline/checkpoints/biodcase_best_06717.ckpt",
+  "model_target": "biodcase_edge.models.wrennet.Improved_Phi_GRU_ATT",
+  "spectrogram_type": "combined_log_linear",
+  "sample_rate": 24000,
+  "clip_duration_seconds": 3.0,
+  "waveform_num_samples": 72000,
+  "n_fft": 1024,
+  "hop_length": 240,
+  "n_freq_bins_stft": 513,
+  "n_filters": 64,
+  "expected_input_features": 64,
+  "f_min_hz": 150.0,
+  "f_max_hz": 12000.0,
+  "trainable_filterbank": true,
+  "raw_breakpoint_parameter": -0.731368362903595,
+  "raw_transition_width_parameter": 4.605170249938965,
+  "effective_breakpoint_hz": 4000.0,
+  "effective_transition_width": 100.00000762939453,
+  "amplitude_to_db": {
+    "stype": "power",
+    "top_db": 80.0,
+    "power_input": true,
+    "applied_outside_spec_module": true
+  },
+  "window": {
+    "type": "hann",
+    "size": 1024,
+    "path": "hann_window.npy"
+  },
+  "filter_bank": {
+    "shape": [
+      64,
+      513
+    ],
+    "path": "filter_bank.npy"
+  },
+  "filter_centers_hz": {
+    "shape": [
+      64
+    ],
+    "path": "filter_centers_hz.npy"
+  },
+  "reference_frontend_output": {
+    "shape": [
+      1,
+      64,
+      301
+    ],
+    "path": "zero_waveform_frontend_output.npy",
+    "description": "Raw filtered magnitude output before AmplitudeToDB, using a zero waveform"
+  },
+  "reference_frontend_output_db": {
+    "shape": [
+      1,
+      64,
+      301
+    ],
+    "path": "zero_waveform_frontend_output_db.npy",
+    "description": "Frontend output after AmplitudeToDB(spec**2), before per-sample normalization"
+  },
+  "spectrogram_after_db_shape": [
+    64,
+    301
+  ],
+  "original_model_params": {
+    "sample_rate": 24000,
+    "hidden_dim": 70,
+    "n_mel_bins": 64,
+    "n_linear_filters": 64,
+    "f_min": 150.0,
+    "f_max": 12000.0,
+    "n_fft": 1024,
+    "hop_length": 240,
+    "breakpoint_config_hz": 4000.0,
+    "transition_width_config": 100.0,
+    "matchbox": {
+      "base_filters": 32,
+      "num_layers": 3,
+      "kernel_size": 3,
+      "dropout": 0.15
+    }
+  }
+}
