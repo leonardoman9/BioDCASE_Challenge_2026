@@ -1,0 +1,47 @@
+{
+  "tflite_path": "/Users/leonardomannini/Progetti/BioDCASE/2026/model_export_pipeline/embedded_classifier_only/artifacts/biodcase_best_06717_classifier_only_unrolled_prenorm_int8_legacy_nopc.tflite",
+  "size_bytes": 1382776,
+  "inputs": [
+    {
+      "name": "serving_default_frontend_features:0_int8",
+      "shape": [
+        1,
+        301,
+        64
+      ],
+      "dtype": "<class 'numpy.int8'>",
+      "quantization": [
+        0.06566809862852097,
+        -44
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "StatefulPartitionedCall:0_int8",
+      "shape": [
+        1,
+        11
+      ],
+      "dtype": "<class 'numpy.int8'>",
+      "quantization": [
+        0.07827543467283249,
+        -21
+      ],
+      "min": -46.0,
+      "max": 6.0
+    }
+  ],
+  "used_select_tf_ops": false,
+  "num_calibration_samples": 549,
+  "inference_io": "int8",
+  "used_new_quantizer": false,
+  "disable_per_channel": true,
+  "saved_model_input_name": "frontend_features",
+  "saved_model_input_shape": [
+    1,
+    301,
+    64
+  ],
+  "representative_features_file": "/Users/leonardomannini/Progetti/BioDCASE/2026/model_export_pipeline/embedded_classifier_only/representative_data_prenorm_full/validation_frontend_features.npy"
+}

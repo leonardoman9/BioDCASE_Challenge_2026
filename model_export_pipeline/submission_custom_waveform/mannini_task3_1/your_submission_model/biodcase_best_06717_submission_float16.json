@@ -1,0 +1,33 @@
+{
+  "tflite_path": "/Users/leonardomannini/Progetti/BioDCASE/2026/model_export_pipeline/exports/biodcase_best_06717_waveform_float16.tflite",
+  "size_bytes": 2449760,
+  "inputs": [
+    {
+      "name": "waveform",
+      "shape": [
+        1,
+        72000,
+        1
+      ],
+      "dtype": "<class 'numpy.float32'>",
+      "quantization": [
+        0.0,
+        0
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "Identity",
+      "shape": [
+        1,
+        11
+      ],
+      "dtype": "<class 'numpy.float32'>",
+      "quantization": [
+        0.0,
+        0
+      ]
+    }
+  ]
+}

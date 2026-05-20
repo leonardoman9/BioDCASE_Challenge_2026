@@ -30,6 +30,17 @@ Workspace for exporting and validating the current BioDCASE model.
 - spectrogram -> ONNX -> TFLite
 - waveform -> ONNX -> TFLite float32
 - waveform -> ONNX -> TFLite float16
+- frontend-features `[64,301]` -> ONNX -> TFLite float32
+
+### Frozen fallback
+
+The current stable fallback is:
+
+- custom waveform submission package in `submission_custom_waveform/`
+- float32 waveform TFLite as the host-side reference
+- float16 waveform TFLite as the deploy fallback
+
+The monolithic waveform int8 path is considered blocked for now.
 
 ### Validation status
 
@@ -42,6 +53,7 @@ See:
 
 - `INT8_STATUS.md`
 - `submission_custom_waveform/`
+- `embedded_classifier_only/`
 
 ### Notes
 

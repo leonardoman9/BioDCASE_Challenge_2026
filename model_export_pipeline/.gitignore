@@ -1,4 +1,5 @@
 .conversion_work/
+.conversion_work_*/
 .mpl-cache/
 .cache/
 checkpoints/
@@ -7,3 +8,7 @@ exports/
 __pycache__/
 submission_custom_waveform/_staging/
 submission_custom_waveform/_matplotlib/
+embedded_classifier_only/artifacts/
+embedded_classifier_only/representative_data/
+embedded_classifier_only/representative_data_prenorm/
+embedded_classifier_only/representative_data_prenorm_full/

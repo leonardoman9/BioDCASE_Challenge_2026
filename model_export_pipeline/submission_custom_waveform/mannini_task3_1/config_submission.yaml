@@ -12,6 +12,7 @@ inference_handler:
   model_dir: './your_submission_model'
   saved_model_extension: '.pth'
   tflite_model_extension: '.tflite'
+  tflite_model_file_name: 'biodcase_best_06717_submission.tflite'
   label_dict_yaml_path: './your_submission_model/label_dict.yaml'
 
   feature_handler:

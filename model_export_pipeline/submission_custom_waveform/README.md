@@ -11,6 +11,7 @@ Contents:
 - `inference_handler.py`: custom PyTorch/TFLite inference handler
 - `biodcase_edge/`: vendored model package needed to load the PyTorch artifact
 - `your_submission_model/`: model artifacts
+- `mannini_task3_1/DEPLOYMENT_NOTES.md`: current host/deploy fallback status
 - `host_inference_scores.yaml`: host-side smoke test results on the challenge demo files
 
 Local host-side test:
@@ -28,4 +29,5 @@ Then it overlays the custom submission files and runs the host-side inference te
 Current scope:
 
 - host-side submission path: working
+- embedded fallback artifact: waveform float16 kept in the package
 - embedded code generation / int8 deployment: not implemented yet

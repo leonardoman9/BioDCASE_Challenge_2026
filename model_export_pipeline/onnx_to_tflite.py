@@ -247,6 +247,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--onnx", default=str(DEFAULT_ONNX), help="Input ONNX path")
     parser.add_argument("--output", default=None, help="Output TFLite path")
     parser.add_argument(
+        "--work-root",
+        default=str(WORK_ROOT),
+        help="Working directory used for the Docker build and conversion scratch space",
+    )
+    parser.add_argument(
         "--quantize",
         choices=("float32", "float16", "dynamic", "int8"),
         default="float32",
@@ -373,6 +378,7 @@ def main() -> None:
     args = parse_args()
     onnx_path = Path(args.onnx).expanduser().resolve()
     output_path = resolve_output_path(args)
+    work_root = Path(args.work_root).expanduser().resolve()
     if not onnx_path.exists():
         raise SystemExit(f"ONNX file not found: {onnx_path}")
 
@@ -380,9 +386,9 @@ def main() -> None:
     print(f"onnx input:  {input_name} {input_shape}")
     print(f"mode:        {args.quantize}")
 
-    WORK_ROOT.mkdir(parents=True, exist_ok=True)
-    build_dir = WORK_ROOT / "docker_build"
-    work_dir = WORK_ROOT / "run"
+    work_root.mkdir(parents=True, exist_ok=True)
+    build_dir = work_root / "docker_build"
+    work_dir = work_root / "run"
 
     build_image(build_dir, rebuild=args.rebuild_image)
     prepare_workspace(work_dir, onnx_path, output_path, input_name, input_shape, args.quantize)

@@ -71,6 +71,7 @@ class InferenceHandler:
             "model_dir": "./your_submission_model",
             "saved_model_extension": ".pth",
             "tflite_model_extension": ".tflite",
+            "tflite_model_file_name": None,
             "label_dict_yaml_path": "./your_submission_model/label_dict.yaml",
             "feature_handler": {
                 "module": "feature_handler",
@@ -147,12 +148,20 @@ class InferenceHandler:
         self.macs_model = None
 
     def _load_tflite(self) -> None:
-        tflite_files = sorted(self.model_dir.glob(f"*{self.cfg['tflite_model_extension']}"))
-        if len(tflite_files) != 1:
-            print(f"warning: expected exactly one tflite file, found {len(tflite_files)} in {self.model_dir}")
-            return
+        requested_name = self.cfg.get("tflite_model_file_name")
+        if requested_name:
+            candidate = self.model_dir / requested_name
+            if not candidate.exists():
+                print(f"warning: configured tflite file not found: {candidate}")
+                return
+            self.target_tflite_model_file = candidate
+        else:
+            tflite_files = sorted(self.model_dir.glob(f"*{self.cfg['tflite_model_extension']}"))
+            if len(tflite_files) != 1:
+                print(f"warning: expected exactly one tflite file, found {len(tflite_files)} in {self.model_dir}")
+                return
+            self.target_tflite_model_file = tflite_files[0]
 
-        self.target_tflite_model_file = tflite_files[0]
         self.tflite_model_interpreter = Interpreter(model_path=str(self.target_tflite_model_file))
         self.tflite_model_interpreter.allocate_tensors()
         self.macs_tflite = compute_macs(self.target_tflite_model_file)
