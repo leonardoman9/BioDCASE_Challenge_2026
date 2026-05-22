@@ -16,7 +16,7 @@ from sklearn.metrics import roc_auc_score
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 CHALLENGE_REPO = REPO_ROOT / "BioDCASE-Tiny-2026"
-SOLUTION_DIR = SCRIPT_DIR / "mannini_task3_1"
+SOLUTION_DIR = SCRIPT_DIR / "your_lastname_task3_1"
 STAGING_ROOT = SCRIPT_DIR / "_staging" / "BioDCASE-Tiny-2026"
 MPLCONFIGDIR = SCRIPT_DIR / "_matplotlib"
 

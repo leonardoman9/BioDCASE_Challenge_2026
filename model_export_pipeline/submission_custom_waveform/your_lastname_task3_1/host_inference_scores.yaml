@@ -1,4 +1,4 @@
-dataset_dir: /Users/leonardomannini/Progetti/BioDCASE/2026/model_export_pipeline/eval_data/BioDCASE2026_TinyML_Development_Dataset/Validation
+dataset_dir: model_export_pipeline/eval_data/BioDCASE2026_TinyML_Development_Dataset/Validation
 num_samples: 549
 inference_score_dict:
   accuracy_inference: 0.6521

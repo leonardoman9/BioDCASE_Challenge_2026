@@ -14,7 +14,7 @@ from sklearn.metrics import roc_auc_score
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
-SOLUTION_DIR = SCRIPT_DIR / "mannini_task3_1"
+SOLUTION_DIR = SCRIPT_DIR / "your_lastname_task3_1"
 DEFAULT_DATASET_DIR = (
     REPO_ROOT / "model_export_pipeline" / "eval_data" / "BioDCASE2026_TinyML_Development_Dataset" / "Validation"
 )

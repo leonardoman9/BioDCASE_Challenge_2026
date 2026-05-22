@@ -1,5 +1,5 @@
 {
-  "checkpoint": "/Users/leonardomannini/Progetti/BioDCASE/2026/model_export_pipeline/checkpoints/biodcase_best_06717.ckpt",
+  "checkpoint": "model_export_pipeline/checkpoints/biodcase_best_06717.ckpt",
   "model_target": "biodcase_edge.models.wrennet.Improved_Phi_GRU_ATT",
   "spectrogram_type": "combined_log_linear",
   "sample_rate": 24000,

@@ -1,5 +1,5 @@
 {
-  "tflite_path": "/Users/leonardomannini/Progetti/BioDCASE/2026/model_export_pipeline/exports/biodcase_best_06717_waveform_float16.tflite",
+  "tflite_path": "model_export_pipeline/exports/biodcase_best_06717_waveform_float16.tflite",
   "size_bytes": 2449760,
   "inputs": [
     {

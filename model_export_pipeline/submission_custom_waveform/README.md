@@ -2,7 +2,7 @@
 
 Local solution folder:
 
-- `mannini_task3_1/`
+- `your_lastname_task3_1/`
 
 Contents:
 
@@ -14,15 +14,15 @@ Contents:
 - `biodcase_edge/`: vendored model package needed to load the PyTorch artifact
 - `your_submission_model/`: model artifacts
 - `your_generated_code/src/`: custom ESP-IDF source tree for the embedded candidate
-- `mannini_task3_1/DEPLOYMENT_NOTES.md`: current host/deploy fallback status
+- `your_lastname_task3_1/DEPLOYMENT_NOTES.md`: current host/deploy fallback status
 - `host_inference_scores.yaml`: host-side smoke test results on the challenge demo files
-- `mannini_task3_1.meta.yaml`: submission metadata draft
+- `your_lastname_task3_1.meta.yaml`: submission metadata draft
 
 Suggested environment setup:
 
 ```bash
 source biodcase_model/.venv/bin/activate
-pip install -r model_export_pipeline/submission_custom_waveform/mannini_task3_1/requirements_submission_host.txt
+pip install -r model_export_pipeline/submission_custom_waveform/your_lastname_task3_1/requirements_submission_host.txt
 ```
 
 If you want to run the official challenge `submission_test.py` or the embedded
@@ -30,7 +30,7 @@ build helpers, install the full set instead:
 
 ```bash
 source biodcase_model/.venv/bin/activate
-pip install -r model_export_pipeline/submission_custom_waveform/mannini_task3_1/requirements_submission_full.txt
+pip install -r model_export_pipeline/submission_custom_waveform/your_lastname_task3_1/requirements_submission_full.txt
 ```
 
 Local host-side test:
@@ -51,7 +51,7 @@ Validation-set evaluation of the actual submission package:
 
 This writes:
 
-- `mannini_task3_1/validation_inference_scores.yaml`
+- `your_lastname_task3_1/validation_inference_scores.yaml`
 
 Current scope:
 
@@ -59,4 +59,4 @@ Current scope:
 - primary host-side artifact: waveform float32 TFLite
 - host-side fallback artifact: waveform float16 TFLite
 - embedded candidate: classifier-only int8 TFLite
-- embedded code path: implemented in `mannini_task3_1/your_generated_code/src`
+- embedded code path: implemented in `your_lastname_task3_1/your_generated_code/src`

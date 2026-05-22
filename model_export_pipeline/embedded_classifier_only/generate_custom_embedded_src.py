@@ -8,7 +8,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE_DIR = ROOT / "BioDCASE-Tiny-2026" / "biodcase_tiny" / "embedded" / "firmware"
-SUBMISSION_DIR = ROOT / "model_export_pipeline" / "submission_custom_waveform" / "mannini_task3_1"
+SUBMISSION_DIR = ROOT / "model_export_pipeline" / "submission_custom_waveform" / "your_lastname_task3_1"
 OUTPUT_DIR = SUBMISSION_DIR / "your_generated_code" / "src"
 ARTIFACTS_DIR = ROOT / "model_export_pipeline" / "embedded_classifier_only" / "artifacts"
 FRONTEND_SPEC_DIR = ROOT / "model_export_pipeline" / "frontend_specs" / "biodcase_best_06717"

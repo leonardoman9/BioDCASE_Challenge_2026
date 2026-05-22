@@ -2,13 +2,13 @@
 # submission information
 
 submission:
-  label: Mannini_UNK_task3_1
+  label: YourLastname_UNK_task3_1
   name: Waveform Frozen Frontend WrenNet
   abbreviation: MNNWAVE1
   authors:
-    - lastname: Mannini
-      firstname: Leonardo
-      email: leonardoman9@gmail.com
+    - lastname: YourLastname
+      firstname: YourFirstname
+      email: your.email@example.com
       corresponding: true
       affiliation:
         abbreviation: UNK

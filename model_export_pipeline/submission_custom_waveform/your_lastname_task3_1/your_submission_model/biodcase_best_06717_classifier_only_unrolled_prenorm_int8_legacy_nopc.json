@@ -1,5 +1,5 @@
 {
-  "tflite_path": "/Users/leonardomannini/Progetti/BioDCASE/2026/model_export_pipeline/embedded_classifier_only/artifacts/biodcase_best_06717_classifier_only_unrolled_prenorm_int8_legacy_nopc.tflite",
+  "tflite_path": "model_export_pipeline/embedded_classifier_only/artifacts/biodcase_best_06717_classifier_only_unrolled_prenorm_int8_legacy_nopc.tflite",
   "size_bytes": 1382776,
   "inputs": [
     {
@@ -43,5 +43,5 @@
     301,
     64
   ],
-  "representative_features_file": "/Users/leonardomannini/Progetti/BioDCASE/2026/model_export_pipeline/embedded_classifier_only/representative_data_prenorm_full/validation_frontend_features.npy"
+  "representative_features_file": "model_export_pipeline/embedded_classifier_only/representative_data_prenorm_full/validation_frontend_features.npy"
 }

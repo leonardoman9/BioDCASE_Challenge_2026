@@ -74,4 +74,4 @@ Current conclusion:
 1. the post-frontend float32 branch preserves parity with PyTorch
 2. the selected embedded candidate is `classifier_only_unrolled_prenorm_int8_legacy_nopc`
 3. its accuracy is lower than float32, but it is the best deploy-oriented int8 compromise found so far
-4. the matching custom ESP-IDF source tree is generated into `submission_custom_waveform/mannini_task3_1/your_generated_code/src`
+4. the matching custom ESP-IDF source tree is generated into `submission_custom_waveform/your_lastname_task3_1/your_generated_code/src`
