@@ -1,0 +1,8 @@
+numpy
+PyYAML
+scipy
+scikit-learn
+soundfile
+torch
+torchaudio
+tensorflow

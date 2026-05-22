@@ -1,5 +1,15 @@
 # Waveform submission deployment notes
 
+Python requirements shipped with this package:
+
+- `requirements_submission_host.txt`
+  - enough for custom host-side inference and parity checks
+- `requirements_submission_full.txt`
+  - enough for the official `submission_test.py` path and embedded build helpers
+
+Use the full file instead of the upstream `requirements_pytorch.txt` if you want
+to avoid the deprecated `sklearn` package entry in the official repository.
+
 Primary host-side artifact:
 
 - `your_submission_model/biodcase_best_06717_submission.tflite`

@@ -61,12 +61,17 @@ Already verified:
 
 Current local artifacts:
 
-- `artifacts/biodcase_best_06717_classifier_only.onnx`
-- `artifacts/biodcase_best_06717_classifier_only_float32.tflite`
-- `artifacts/biodcase_best_06717_classifier_only_float32.json`
-- `artifacts/backend_comparison_classifier_only_validation.json`
+- `artifacts/biodcase_best_06717_classifier_only_unrolled_prenorm.onnx`
+- `artifacts/biodcase_best_06717_classifier_only_unrolled_prenorm_float32.tflite`
+- `artifacts/biodcase_best_06717_classifier_only_unrolled_prenorm_float32.json`
+- `artifacts/biodcase_best_06717_classifier_only_unrolled_prenorm_int8_legacy_nopc.tflite`
+- `artifacts/biodcase_best_06717_classifier_only_unrolled_prenorm_int8_legacy_nopc.json`
+- `artifacts/backend_comparison_classifier_only_unrolled_prenorm_float32_int8_rerun.json`
+- `artifacts/quantization_variant_summary.json`
 
-Immediate next step:
+Current conclusion:
 
-1. quantize classifier-only to int8 using the representative dataset
-2. compare `frontend + PyTorch classifier` vs `frontend + TFLite int8 classifier`
+1. the post-frontend float32 branch preserves parity with PyTorch
+2. the selected embedded candidate is `classifier_only_unrolled_prenorm_int8_legacy_nopc`
+3. its accuracy is lower than float32, but it is the best deploy-oriented int8 compromise found so far
+4. the matching custom ESP-IDF source tree is generated into `submission_custom_waveform/mannini_task3_1/your_generated_code/src`

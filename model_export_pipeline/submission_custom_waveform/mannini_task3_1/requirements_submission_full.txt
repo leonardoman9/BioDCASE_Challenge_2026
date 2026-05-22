@@ -1,0 +1,14 @@
+numpy
+PyYAML
+scipy
+scikit-learn
+soundfile
+matplotlib
+docker
+flatbuffers
+jinja2
+numba
+tqdm
+torch
+torchaudio
+tensorflow
