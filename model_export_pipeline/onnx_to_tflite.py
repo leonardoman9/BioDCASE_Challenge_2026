@@ -265,20 +265,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def inspect_onnx_input(onnx_path: Path) -> tuple[str, list[int]]:
+def inspect_onnx_inputs(onnx_path: Path) -> list[dict]:
     model = onnx.load(str(onnx_path))
-    if len(model.graph.input) != 1:
-        raise ValueError("This script currently supports single-input ONNX models only")
 
-    tensor = model.graph.input[0]
-    dims: list[int] = []
-    for dim in tensor.type.tensor_type.shape.dim:
-        if dim.dim_value <= 0:
-            raise ValueError(
-                f"ONNX input shape must be static for TFLite export. Found non-static dim in {tensor.name}."
-            )
-        dims.append(int(dim.dim_value))
-    return tensor.name, dims
+    inputs = []
+    for tensor in model.graph.input:
+        dims: list[int] = []
+        for dim in tensor.type.tensor_type.shape.dim:
+            if dim.dim_value <= 0:
+                raise ValueError(
+                    f"ONNX input shape must be static for TFLite export. Found non-static dim in {tensor.name}."
+                )
+            dims.append(int(dim.dim_value))
+        inputs.append({"name": tensor.name, "shape": dims})
+    return inputs
 
 
 def ensure_clean_dir(path: Path) -> None:
@@ -314,8 +314,7 @@ def prepare_workspace(
     work_dir: Path,
     onnx_path: Path,
     output_path: Path,
-    input_name: str,
-    input_shape: list[int],
+    inputs: list[dict],
     mode: str,
 ) -> None:
     ensure_clean_dir(work_dir)
@@ -325,8 +324,9 @@ def prepare_workspace(
     (work_dir / "input" / "spec.json").write_text(
         json.dumps(
             {
-                "input_name": input_name,
-                "input_shape": input_shape,
+                "inputs": inputs,
+                "input_name": inputs[0]["name"],
+                "input_shape": inputs[0]["shape"],
                 "mode": mode,
                 "output_filename": output_path.name,
             },
@@ -382,16 +382,19 @@ def main() -> None:
     if not onnx_path.exists():
         raise SystemExit(f"ONNX file not found: {onnx_path}")
 
-    input_name, input_shape = inspect_onnx_input(onnx_path)
-    print(f"onnx input:  {input_name} {input_shape}")
+    inputs = inspect_onnx_inputs(onnx_path)
+    for input_spec in inputs:
+        print(f"onnx input:  {input_spec['name']} {input_spec['shape']}")
     print(f"mode:        {args.quantize}")
+    if args.quantize == "int8" and len(inputs) != 1:
+        raise SystemExit("int8 conversion path currently supports only single-input ONNX models")
 
     work_root.mkdir(parents=True, exist_ok=True)
     build_dir = work_root / "docker_build"
     work_dir = work_root / "run"
 
     build_image(build_dir, rebuild=args.rebuild_image)
-    prepare_workspace(work_dir, onnx_path, output_path, input_name, input_shape, args.quantize)
+    prepare_workspace(work_dir, onnx_path, output_path, inputs, args.quantize)
     run_container(work_dir)
     final_path = finalize_outputs(work_dir, output_path)
 

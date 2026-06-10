@@ -22,7 +22,10 @@ limitations under the License.
 #ifndef TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_MICRO_FEATURES_MODEL_H_
 #define TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_MICRO_FEATURES_MODEL_H_
 
-extern const unsigned char g_model[];
-extern const int g_model_len;
+extern const unsigned char g_backbone_model[];
+extern const int g_backbone_model_len;
+
+extern const unsigned char g_streaming_step_model[];
+extern const int g_streaming_step_model_len;
 
 #endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_MICRO_FEATURES_MODEL_H_

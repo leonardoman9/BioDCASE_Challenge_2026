@@ -1,6 +1,6 @@
 idf_component_register(
     SRCS main.cpp metrics.cpp model.cpp esp_micro_profiler.cpp frontend_frozen.cpp frontend_frozen_data.cpp
-    PRIV_REQUIRES spi_flash driver esp_timer
+    PRIV_REQUIRES spi_flash driver esp_timer esp-tflite-micro espressif__esp-dsp
     INCLUDE_DIRS "")
 
 target_compile_options(${COMPONENT_LIB} PRIVATE

@@ -25,7 +25,7 @@ system:
     embeddings: !!null
     model_architecture: WrenNet-style Matchbox CNN plus GRU plus attention classifier with custom frozen frontend
     training_objective: focal loss fine-tuning
-    model_compression: float32 waveform TFLite host reference, float16 waveform fallback, and optional classifier-only int8 embedded artifact with custom frontend on device
+    model_compression: float32 waveform TFLite host reference; embedded deployment uses a float32 stateful split with separate backbone and recurrent streaming-step TFLite models to avoid a fully unrolled GRU graph on ESP32-S3
     external_data_usage: initialization from Xeno-canto pretraining followed by BioDCASE fine-tuning; external-data usage must be declared with the submission
   source_code: https://github.com/leonardoman9/BioDCASE_Challenge_2026.git
   external_datasets:
@@ -44,8 +44,8 @@ results:
   macs_tflite: N/A
   num_params_inference: 57552
   num_params_tflite: 1083820
-  embedded_time_ms_setup: N/A
-  embedded_time_ms_preprocessing: N/A
-  embedded_time_ms_model: N/A
-  embedded_time_ms_total: N/A
-  embedded_ram_usage_bytes: N/A
+  embedded_time_ms_setup: 21.85
+  embedded_time_ms_preprocessing: 477.42
+  embedded_time_ms_model: 3619.17
+  embedded_time_ms_total: 4118.44
+  embedded_ram_usage_bytes: 263528

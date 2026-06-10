@@ -124,11 +124,15 @@ esp_err_t FrozenFrontend::ExtractToModelInput(
     ESP_LOGE(TAG, "Unexpected waveform size: %d", static_cast<int>(waveform.size()));
     return ESP_ERR_INVALID_SIZE;
   }
-  if (input_tensor == nullptr || input_tensor->type != kTfLiteInt8) {
-    ESP_LOGE(TAG, "Expected int8 input tensor");
+  if (input_tensor == nullptr ||
+      (input_tensor->type != kTfLiteInt8 && input_tensor->type != kTfLiteFloat32)) {
+    ESP_LOGE(TAG, "Expected int8 or float32 input tensor");
     return ESP_ERR_INVALID_ARG;
   }
-  if (input_tensor->bytes != kNumFrames * kNumFilters) {
+  const int count = kNumFrames * kNumFilters;
+  const size_t expected_bytes =
+      input_tensor->type == kTfLiteInt8 ? count : count * sizeof(float);
+  if (input_tensor->bytes != expected_bytes) {
     ESP_LOGE(TAG, "Unexpected input tensor size: %d", static_cast<int>(input_tensor->bytes));
     return ESP_ERR_INVALID_SIZE;
   }
@@ -158,7 +162,6 @@ esp_err_t FrozenFrontend::ExtractToModelInput(
   const float cutoff = max_db - kTopDb;
   event = profiler->BeginEvent("SampleNorm");
   double sum = 0.0;
-  const int count = kNumFrames * kNumFilters;
   for (int idx = 0; idx < count; ++idx) {
     if (spectrogram_db_[idx] < cutoff) {
       spectrogram_db_[idx] = cutoff;
@@ -176,13 +179,21 @@ esp_err_t FrozenFrontend::ExtractToModelInput(
   const float std = static_cast<float>(std::sqrt(variance)) + kNormalizationEps;
   profiler->EndEvent(event);
 
-  event = profiler->BeginEvent("InputQuantize");
-  const float input_scale = input_tensor->params.scale;
-  const int input_zero_point = input_tensor->params.zero_point;
-  auto* input_data = input_tensor->data.int8;
-  for (int idx = 0; idx < count; ++idx) {
-    const float normalized = (spectrogram_db_[idx] - mean) / std;
-    input_data[idx] = QuantizeToInt8(normalized, input_scale, input_zero_point);
+  if (input_tensor->type == kTfLiteInt8) {
+    event = profiler->BeginEvent("InputQuantize");
+    const float input_scale = input_tensor->params.scale;
+    const int input_zero_point = input_tensor->params.zero_point;
+    auto* input_data = input_tensor->data.int8;
+    for (int idx = 0; idx < count; ++idx) {
+      const float normalized = (spectrogram_db_[idx] - mean) / std;
+      input_data[idx] = QuantizeToInt8(normalized, input_scale, input_zero_point);
+    }
+  } else {
+    event = profiler->BeginEvent("InputFloatCopy");
+    auto* input_data = input_tensor->data.f;
+    for (int idx = 0; idx < count; ++idx) {
+      input_data[idx] = (spectrogram_db_[idx] - mean) / std;
+    }
   }
   profiler->EndEvent(event);
   return ESP_OK;

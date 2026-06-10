@@ -2,11 +2,14 @@ Custom embedded source tree for the frozen-frontend waveform submission.
 
 This `src/` project targets the chosen embedded candidate:
 
-- model: `biodcase_best_06717_classifier_only_unrolled_prenorm_int8_legacy_nopc.tflite`
+- backbone model: `biodcase_backbone_streaming_float32.tflite`
+- streaming-step model: `biodcase_streaming_step_float32.tflite`
 - runtime contract:
   - waveform input on device
   - frozen frontend on device
-  - pre-normalized int8 classifier-only TFLite inside firmware
+  - float32 backbone TFLite inside firmware
+  - float32 recurrent/attention step TFLite inside firmware, invoked once per
+    frontend frame with explicit state buffers
 
 The firmware keeps the challenge parser-compatible log structure:
 
