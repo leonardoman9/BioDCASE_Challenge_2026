@@ -45,6 +45,7 @@ exports/
 **/logs/
 **/outputs/
 **/exports/
+model_export_pipeline/submission_custom_waveform/_delivery/
 wandb/
 mlruns/
 *.ckpt
