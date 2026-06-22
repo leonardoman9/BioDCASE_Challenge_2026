@@ -44,7 +44,7 @@ system:
     model_architecture: WrenNet-style Matchbox CNN plus GRU plus attention classifier with custom frozen frontend
     training_objective: focal loss fine-tuning
     model_compression: float32 waveform TFLite host reference; embedded deployment uses a float32 stateful split with separate backbone and recurrent streaming-step TFLite models to avoid a fully unrolled GRU graph on ESP32-S3
-    external_data_usage: initialization from Xeno-canto pretraining followed by BioDCASE fine-tuning; external-data usage must be declared with the submission
+    external_data_usage: Xeno-canto recordings for target-species pretraining, followed by fine-tuning on the BioDCASE development set
   source_code: https://github.com/leonardoman9/BioDCASE_Challenge_2026.git
   external_datasets:
     - name: Xeno-canto bird recordings
