@@ -14,9 +14,9 @@ Contents:
 - `biodcase_edge/`: vendored model package needed to load the PyTorch artifact
 - `your_submission_model/`: model artifacts
 - `your_generated_code/src/`: custom ESP-IDF source tree for the embedded candidate
-- `your_lastname_task3_1/DEPLOYMENT_NOTES.md`: current host/deploy fallback status
+- `your_lastname_task3_1/DEPLOYMENT_NOTES.md`: current host/deploy status
 - `host_inference_scores.yaml`: host-side smoke test results on the challenge demo files
-- `your_lastname_task3_1.meta.yaml`: submission metadata draft
+- `Mannini_FBK_task3_1.meta.yaml`: submission metadata
 
 Suggested environment setup:
 
@@ -57,6 +57,5 @@ Current scope:
 
 - host-side submission path: working
 - primary host-side artifact: waveform float32 TFLite
-- host-side fallback artifact: waveform float16 TFLite
-- embedded candidate: classifier-only int8 TFLite
+- embedded path: stateful split float32 TFLite backbone plus recurrent step
 - embedded code path: implemented in `your_lastname_task3_1/your_generated_code/src`

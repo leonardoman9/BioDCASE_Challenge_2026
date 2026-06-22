@@ -2,19 +2,37 @@
 # submission information
 
 submission:
-  label: YourLastname_UNK_task3_1
+  label: Mannini_FBK_task3_1
   name: Waveform Frozen Frontend WrenNet
   abbreviation: MNNWAVE1
   authors:
-    - lastname: YourLastname
-      firstname: YourFirstname
-      email: your.email@example.com
+    - lastname: Mannini
+      firstname: Leonardo
+      email: mannini.leonardo@protonmail.com
       corresponding: true
       affiliation:
-        abbreviation: UNK
-        institute: Unknown
-        department: Unknown
-        location: Unknown
+        abbreviation: FBK
+        institute: Fondazione Bruno Kessler
+        department: FBK
+        location: Trento, Italy
+    - lastname: Ciapponi
+      firstname: Stefano
+      email: sciapponi@fbk.eu
+      corresponding: false
+      affiliation:
+        abbreviation: FBK
+        institute: Fondazione Bruno Kessler
+        department: FBK
+        location: Trento, Italy
+    - lastname: Farella
+      firstname: Elisabetta
+      email: efarella@fbk.eu
+      corresponding: false
+      affiliation:
+        abbreviation: FBK
+        institute: Fondazione Bruno Kessler
+        department: FBK
+        location: Trento, Italy
   coding_agents_ai_used: true
 
 system:
@@ -31,7 +49,7 @@ system:
   external_datasets:
     - name: Xeno-canto bird recordings
       url: https://xeno-canto.org/
-      total_audio_length: !!null
+      total_audio_length: 2761.35
 
 results:
   accuracy_inference: 0.6521
@@ -44,8 +62,8 @@ results:
   macs_tflite: N/A
   num_params_inference: 57552
   num_params_tflite: 1083820
-  embedded_time_ms_setup: 21.85
-  embedded_time_ms_preprocessing: 477.42
-  embedded_time_ms_model: 3619.17
-  embedded_time_ms_total: 4118.44
+  embedded_time_ms_setup: 21.53
+  embedded_time_ms_preprocessing: 477.45
+  embedded_time_ms_model: 3961.88
+  embedded_time_ms_total: 4460.87
   embedded_ram_usage_bytes: 263528
