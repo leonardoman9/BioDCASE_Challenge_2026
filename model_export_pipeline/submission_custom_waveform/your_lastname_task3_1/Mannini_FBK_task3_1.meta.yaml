@@ -11,10 +11,10 @@ submission:
       email: mannini.leonardo@protonmail.com
       corresponding: true
       affiliation:
-        abbreviation: !!null
-        institute: !!null
-        department: !!null
-        location: !!null
+        abbreviation: FBK
+        institute: Fondazione Bruno Kessler
+        department: E3DA
+        location: Trento, Italy
     - lastname: Ciapponi
       firstname: Stefano
       email: sciapponi@fbk.eu
