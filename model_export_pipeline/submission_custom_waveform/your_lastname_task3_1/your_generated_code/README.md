@@ -17,10 +17,10 @@ The firmware keeps the challenge parser-compatible log structure:
 - preprocessing timing block
 - inference timing block
 
-To compile later with the official toolchain:
+To compile manually from `src/` with the ESP-IDF Docker image:
 
 ```bash
-python compile_embedded_src_code.py
+docker run --rm -v "$PWD":/project -w /project espressif/idf:release-v5.4 idf.py build
 ```
 
 Or from the submission folder, after adapting the serial device if needed:
